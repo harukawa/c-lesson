@@ -3,21 +3,21 @@
 
 static const char* const input = "123 456  1203";
 
-void split(char *input, int **output){
+void split(char *input, int *out_nums){
 	int count = 0,i=0,tmp=0;
 	char a;
 	while(1){
 		a = input[i++];
 		if(a == ' '){
 			if(tmp != 0){
-				output[count++] = tmp;
+				out_nums[count++] = tmp;
 			}
 			tmp = 0;
 			continue;
 		}
 
 		if(a == '\0'){
-			output[count] = tmp;
+			out_nums[count] = tmp;
 			break;
 		}
 
@@ -33,7 +33,7 @@ int main() {
     int answer3 = 0;
 
     // write something here.
-    int *output[3];
+    int output[3];
 
     split(input,output);
     answer1 = output[0];
