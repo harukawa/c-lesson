@@ -20,39 +20,34 @@ int _isdigit(int c){
 
 int parse_one(int prev_ch, int *out_val, int *out_type){
 	
-	int ch;
+	int ch,c;
 	enum LexicalType type;
 	if(prev_ch == EOF){
 		ch = cl_getc();
 	}else{
 		ch = prev_ch;
 	}
-
+	
 	if(_isdigit(ch) == 1){
 		type = NUMBER;
 		ch = ch - '0';
+		while(1){
+			c = cl_getc();
+			if(_isdigit(c)){
+				ch = ch * 10 + ( c - '0');
+			}else{
+				break;
+			}
+		}
 	}else{
 		type = SPACE;
-	}
-	int c;
-	while(1){
-		c = cl_getc();
-		if(c == EOF){
-			break;
-		}
-
-		if(_isdigit(c) == 1){
-			// If prev_ch is NUMBER
-			if(type == SPACE){
+		while(1){
+			c = cl_getc();
+			if(_isdigit(c)){
 				break;
+			}else{
+				continue;
 			}
-			ch = ch * 10 + (c - '0');
-		}else{
-			// If prev_ch is SPACE
-			if(type == NUMBER){
-				break;
-			}
-			continue;
 		}
 	}
 	*out_val = ch;
