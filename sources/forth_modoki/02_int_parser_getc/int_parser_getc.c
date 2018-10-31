@@ -28,7 +28,7 @@ int parse_one(int prev_ch, int *out_val, int *out_type){
 		ch = prev_ch;
 	}
 	
-	if(_isdigit(ch) == 1){
+	if(_isdigit(ch)){
 		type = NUMBER;
 		ch = ch - '0';
 		while(1){
