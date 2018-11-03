@@ -20,7 +20,7 @@ int _isdigit(int c){
 
 int parse_one(int prev_ch, int *out_val, int *out_type){
 	
-	int single_ch,c;
+	int single_ch;
 	int output;
 	enum LexicalType type;
 	if(prev_ch == EOF){
@@ -29,19 +29,19 @@ int parse_one(int prev_ch, int *out_val, int *out_type){
 		single_ch = prev_ch;
 	}
 	
+	//NUMBER
 	if(_isdigit(single_ch)){
 		type = NUMBER;
 		int number = 0;
 		do{
 			number = number * 10 + ( single_ch - '0');
-			//single_ch = cl_getc();
 		}while(_isdigit(single_ch = cl_getc() ));
 		output = number;
+	//SPACE
 	}else{
 		type = SPACE;
 		output = single_ch;
 		while(!_isdigit(single_ch = cl_getc() )){
-			//single_ch = cl_getc();
 		}
 	}
 	*out_val = output;
