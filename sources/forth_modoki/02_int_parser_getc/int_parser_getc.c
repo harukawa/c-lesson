@@ -33,15 +33,15 @@ int parse_one(int prev_ch, int *out_val, int *out_type){
 		type = NUMBER;
 		int number = 0;
 		do{
-				number = number * 10 + ( single_ch - '0');
-				single_ch = cl_getc();
-			}while(_isdigit(single_ch));
+			number = number * 10 + ( single_ch - '0');
+			//single_ch = cl_getc();
+		}while(_isdigit(single_ch = cl_getc() ));
 		output = number;
 	}else{
 		type = SPACE;
 		output = single_ch;
-		while(!_isdigit(single_ch)){
-			single_ch = cl_getc();
+		while(!_isdigit(single_ch = cl_getc() )){
+			//single_ch = cl_getc();
 		}
 	}
 	*out_val = output;
