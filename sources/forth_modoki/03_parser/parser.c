@@ -20,7 +20,7 @@ int _isdigit(int c){
 }
 
 int _isExecutable(int c){
-	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
+	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z');
 }
 
 struct Token {
@@ -53,11 +53,11 @@ int parse_one(int prev_ch, struct Token *out_token) {
 		do {
 			number = number * 10 + ( single_ch - '0');
 		}while(_isdigit(single_ch = cl_getc()));
-		out_token->u.number = number;
 		out_token->ltype = NUMBER;
+		out_token->u.number = number;
 		return single_ch;
 	
-	//EXECUTABLE
+	//Executable
 	}else if(_isExecutable(single_ch)){
 		char *str;
 		str = malloc(sizeof(char) * NAME_SIZE);
@@ -68,8 +68,23 @@ int parse_one(int prev_ch, struct Token *out_token) {
 		}while(_isExecutable(single_ch = cl_getc()));
 		str[i] = '\n';
 		
-		out_token->u.name = str;
 		out_token->ltype = EXECUTABLE_NAME;
+		out_token->u.name = str;
+		return single_ch;
+
+	//Literal
+	}else if(single_ch == '/'){
+		char *str;
+		str = malloc(sizeof(char) * NAME_SIZE);
+		int i = 0;
+		do{
+			str[i] = (char)single_ch;
+			i++;
+		}while(_isExecutable(single_ch = cl_getc()));
+		str[i] = '\n';
+		
+		out_token->ltype = LITERAL_NAME;
+		out_token->u.name = str;
 		return single_ch;
 
 	//SPACE	
@@ -81,6 +96,21 @@ int parse_one(int prev_ch, struct Token *out_token) {
 		out_token->ltype = SPACE;
 		out_token->u.onechar = ' ';
 		return single_ch;
+
+	//OPEN_CURLY
+	}else if(single_ch == '{'){
+		out_token->ltype = OPEN_CURLY;
+		out_token->u.onechar = (char)single_ch;
+		single_ch = cl_getc();
+		return single_ch;
+
+	//CLOSE_CURLY
+	}else if(single_ch == '}'){
+		out_token->ltype = CLOSE_CURLY;
+		out_token->u.onechar = (char)single_ch;
+		single_ch = cl_getc();
+		return single_ch;
+
 	//EOF
 	}else if(single_ch == EOF){
 		out_token->ltype = END_OF_FILE;
@@ -178,17 +208,32 @@ static void test_parse_one_executable() {
     assert( strcmp(expect_name,token.u.name));
 }
 
+static void test_parse_one_literal(){
+	char* input = "/add";
+	char* expect_name = "add";
+	int expect_type = LITERAL_NAME;
 
+    struct Token token = {UNKNOWN, {0}};
+    int ch;
+
+    cl_getc_set_src(input);
+
+    ch = parse_one(EOF, &token);
+    assert(ch == EOF);
+    assert(token.ltype == expect_type);
+    assert( strcmp(expect_name,token.u.name));
+}
 static void unit_tests() {
     test_parse_one_empty_should_return_END_OF_FILE();
     test_parse_one_number();
 	test_parse_one_executable();
+	test_parse_one_literal();
 }
 
 int main() {
     unit_tests();
 
     cl_getc_set_src("123 45 add /some { 2 3 add } def");
-   // parser_print_all();
+    parser_print_all();
 	return 1;
 }
