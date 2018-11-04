@@ -224,8 +224,8 @@ static void test_parse_one_literal(){
     assert( strcmp(expect_name,token.u.name));
 }
 static void unit_tests() {
-    test_parse_one_empty_should_return_END_OF_FILE();
-    test_parse_one_number();
+	test_parse_one_empty_should_return_END_OF_FILE();
+	test_parse_one_number();
 	test_parse_one_executable();
 	test_parse_one_literal();
 }
