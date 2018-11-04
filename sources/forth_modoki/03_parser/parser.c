@@ -15,7 +15,13 @@ enum LexicalType {
     UNKNOWN
 };
 
+int _isdigit(int c){
+	return  '0' <= c && c <= '9';
+}
 
+int _isExecutable(int c){
+	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
+}
 
 struct Token {
     enum LexicalType ltype;
@@ -34,10 +40,56 @@ int parse_one(int prev_ch, struct Token *out_token) {
      * TODO: Implement here!
      * 
     ****/
+	int single_ch;
+	if(prev_ch == EOF){
+		single_ch = cl_getc();
+	}else{
+		single_ch = prev_ch;
+	}
+	// Number
+	if(_isdigit(single_ch)){
+		int number;
+		number = 0;
+		do {
+			number = number * 10 + ( single_ch - '0');
+		}while(_isdigit(single_ch = cl_getc()));
+		out_token->u.number = number;
+		out_token->ltype = NUMBER;
+		return single_ch;
+	
+	//EXECUTABLE
+	}else if(_isExecutable(single_ch)){
+		char *str;
+		str = malloc(sizeof(char) * NAME_SIZE);
+		int i = 0;
+		do{
+			str[i] = (char)single_ch;
+			i++;
+		}while(_isExecutable(single_ch = cl_getc()));
+		str[i] = '\n';
+		
+		out_token->u.name = str;
+		out_token->ltype = EXECUTABLE_NAME;
+		return single_ch;
+
+	//SPACE	
+	}else if(single_ch == ' ') { 
+		do {
+			single_ch = cl_getc();
+		}while(single_ch == ' ');
+		
+		out_token->ltype = SPACE;
+		out_token->u.onechar = ' ';
+		return single_ch;
+	//EOF
+	}else if(single_ch == EOF){
+		out_token->ltype = END_OF_FILE;
+		return EOF;
+	}
+
     out_token->ltype = UNKNOWN;
     return EOF;
 }
-
 
 void parser_print_all() {
     int ch = EOF;
@@ -80,7 +132,6 @@ void parser_print_all() {
 
 
 
-
 static void test_parse_one_number() {
     char *input = "123";
     int expect = 123;
@@ -111,16 +162,33 @@ static void test_parse_one_empty_should_return_END_OF_FILE() {
     assert(token.ltype == expect);
 }
 
+static void test_parse_one_executable() {
+    char* input = "add";
+    char* expect_name = "add";
+	int expect_type = EXECUTABLE_NAME;
+
+    struct Token token = {UNKNOWN, {0}};
+    int ch;
+
+    cl_getc_set_src(input);
+
+    ch = parse_one(EOF, &token);
+    assert(ch == EOF);
+    assert(token.ltype == expect_type);
+    assert( strcmp(expect_name,token.u.name));
+}
+
 
 static void unit_tests() {
     test_parse_one_empty_should_return_END_OF_FILE();
     test_parse_one_number();
+	test_parse_one_executable();
 }
 
 int main() {
     unit_tests();
 
     cl_getc_set_src("123 45 add /some { 2 3 add } def");
-    parser_print_all();
-    return 1;
+   // parser_print_all();
+	return 1;
 }
