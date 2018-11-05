@@ -60,14 +60,17 @@ int parse_one(int prev_ch, struct Token *out_token) {
 	//Executable
 	}else if(_isExecutable(single_ch)){
 		char *str;
-		str = malloc(sizeof(char) * NAME_SIZE);
-		int i = 0;
+		char tmp[NAME_SIZE];
+		int i = 0,mem_size;
 		do{
-			str[i] = (char)single_ch;
+			tmp[i] = (char)single_ch;
 			i++;
 		}while(_isExecutable(single_ch = cl_getc()));
-		str[i] = '\n';
-		
+		tmp[i] = '\0';
+		mem_size = sizeof(char) * i;
+		str = malloc(mem_size);
+		memcpy(str, tmp, mem_size);
+
 		out_token->ltype = EXECUTABLE_NAME;
 		out_token->u.name = str;
 		return single_ch;
@@ -75,13 +78,17 @@ int parse_one(int prev_ch, struct Token *out_token) {
 	//Literal
 	}else if(single_ch == '/'){
 		char *str;
-		str = malloc(sizeof(char) * NAME_SIZE);
-		int i = 0;
-		do{
-			str[i] = (char)single_ch;
+		char tmp[NAME_SIZE];
+		//str = malloc(sizeof(char) * NAME_SIZE);
+		int i = 0,mem_size;
+		while(_isExecutable(single_ch = cl_getc())){
+			tmp[i] = (char)single_ch;
 			i++;
-		}while(_isExecutable(single_ch = cl_getc()));
-		str[i] = '\n';
+		}
+		tmp[i] = '\0';
+		mem_size = sizeof(char) * i;
+		str = malloc(mem_size);
+		memcpy(str, tmp, mem_size);
 		
 		out_token->ltype = LITERAL_NAME;
 		out_token->u.name = str;
@@ -205,7 +212,7 @@ static void test_parse_one_executable() {
     ch = parse_one(EOF, &token);
     assert(ch == EOF);
     assert(token.ltype == expect_type);
-    assert( strcmp(expect_name,token.u.name));
+    assert( strcmp(expect_name,token.u.name)== 0);
 }
 
 static void test_parse_one_literal(){
@@ -221,7 +228,7 @@ static void test_parse_one_literal(){
     ch = parse_one(EOF, &token);
     assert(ch == EOF);
     assert(token.ltype == expect_type);
-    assert( strcmp(expect_name,token.u.name));
+    assert( strcmp(expect_name,token.u.name) == 0);
 }
 static void unit_tests() {
 	test_parse_one_empty_should_return_END_OF_FILE();
