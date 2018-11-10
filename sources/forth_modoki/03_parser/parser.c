@@ -67,6 +67,7 @@ int parse_one(int prev_ch, struct Token *out_token) {
 			i++;
 		}while(_isExecutable(single_ch = cl_getc()));
 		tmp[i] = '\0';
+		i++;
 		mem_size = sizeof(char) * i;
 		str = malloc(mem_size);
 		memcpy(str, tmp, mem_size);
@@ -86,6 +87,7 @@ int parse_one(int prev_ch, struct Token *out_token) {
 			i++;
 		}
 		tmp[i] = '\0';
+		i++;
 		mem_size = sizeof(char) * i;
 		str = malloc(mem_size);
 		memcpy(str, tmp, mem_size);
