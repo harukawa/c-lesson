@@ -1,5 +1,4 @@
 #include "stack.h"
-#include <stdio.h>
 #include <assert.h>
 
 #define STACK_SIZE 1024
