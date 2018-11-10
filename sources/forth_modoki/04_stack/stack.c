@@ -3,21 +3,7 @@
 #include <assert.h>
 
 #define STACK_SIZE 1024
-/*
-enum NodeType {
-	NUMBER,
-	LITERAL_NAME,
-	UNKNOWN
-};
 
-struct Node {
-	enum NodeType ntype;
-	union {
-		int number;
-		char *name;
-	}u;
-};
-*/
 static struct Node stack[STACK_SIZE];
 static int pos = 0;
 
