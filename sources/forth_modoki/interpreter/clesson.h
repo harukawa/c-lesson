@@ -47,6 +47,5 @@ int dict_get(char* key, struct Node *out_node);
 void dict_print_all();
 int streq(char *s1, char *s2);
 
-
 void dict_put(char* key, struct Node *node);
 int dict_get(char* key, struct Node *out_node);
