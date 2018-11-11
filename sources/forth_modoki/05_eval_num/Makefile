@@ -1,6 +1,6 @@
 # Makefile
 eval: cl_getc.o parser.o stack.o eval.o
-	cc -o a cl_getc.o parser.o stack.o eval.o
+	cc -o eval cl_getc.o parser.o stack.o eval.o
 cl_getc.o: cl_getc.c
 	cc -c cl_getc.c
 parser.o: parser.c
