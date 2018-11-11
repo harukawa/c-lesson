@@ -2,7 +2,7 @@
 #include "assert.h"
 
 int streq(char *s1, char *s2) {
-	if(strcmp(s1,s2)) {
+	if(strcmp(s1,s2)==0) {
 		return 1;
 	}else {
 		return 0;
@@ -13,14 +13,14 @@ int streq(char *s1, char *s2) {
 void eval() {
 	int ch = EOF;
 	struct Token token = {UNKNOWN, {0} };
-	struct Node node = {UNKNOWN, {0} };
+	struct Node node = {NODE_UNKNOWN, {0} };
 
     do {
         ch = parse_one(ch, &token);
         if(token.ltype != UNKNOWN) {
             switch(token.ltype) {
                 case NUMBER:
-					node.ntype = NUMBER;
+					node.ntype = NODE_NUMBER;
 					node.u.number = token.u.number;
 					stack_push(&node);
                     break;
@@ -31,6 +31,15 @@ void eval() {
                 case CLOSE_CURLY:
                     break;
                 case EXECUTABLE_NAME:
+					if(streq(token.u.name, "add")) {
+						int one,two;
+						stack_pop(&node);
+						one = node.u.number;
+						stack_pop(&node);
+						two = node.u.number;
+						node.u.number = one+two;
+						stack_push(&node);
+					}
                     break;
                 case LITERAL_NAME:
                     break;
@@ -94,6 +103,9 @@ static void test_eval_add() {
 
     /* TODO: write code to pop stack top element */
     int actual = 0;
+	struct Node actual_data ={UNKNOWN,{0}};
+	stack_pop(&actual_data);
+	actual = actual_data.u.number;
     assert(expect == actual);
 }
 
@@ -101,8 +113,7 @@ static void test_eval_add() {
 int main() {
 	test_eval_num_one();
 	test_eval_num_two();
-	//test_eval_num_add();
-	printf("success\n");
+	test_eval_add();
 
 	return 1;
 }
