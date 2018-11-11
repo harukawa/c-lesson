@@ -218,3 +218,12 @@ static void unit_tests() {
 	test_parse_one_literal();
 }
 
+#if 0
+int main() {
+    unit_tests();
+
+    cl_getc_set_src("123 45 add /some { 2 3 add } def");
+    parser_print_all();
+	return 1;
+}
+#endif

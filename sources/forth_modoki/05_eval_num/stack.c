@@ -70,3 +70,14 @@ static void test_two_push_two_pop() {
 	assert(actual.ntype == input.ntype);
 	assert(actual.u.number == input.u.number);
 }
+
+#if 0
+int main() {
+	test_one_pop();
+	test_one_push_one_pop();
+	test_two_push_two_pop();
+	stack_print_all();
+	return 0;
+}
+#endif
+
