@@ -65,7 +65,7 @@ static void test_two_push_two_pop() {
 	stack_push(&input2);
 	stack_pop(&actual);
 	assert(actual.ntype == input2.ntype);
-	assert(actual.u.number == input2.u.name);
+	assert(actual.u.name == input2.u.name);
 	stack_pop(&actual);
 	assert(actual.ntype == input.ntype);
 	assert(actual.u.number == input.u.number);
