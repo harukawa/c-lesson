@@ -10,22 +10,15 @@ struct KeyValue {
 #define DICT_SIZE 1024
 static struct KeyValue dict_array[DICT_SIZE];
 
-void dict_init() {
-	dict_pos = 0;
-	struct Node none ={NODE_UNKNOWN,{0}};
-	dict_array[dict_pos].key = "\0";
-	dict_array[dict_pos].value = none;
-}
-
 void dict_put(char* key, struct Node *node) {
-	int flag = 1;
+	int found = 1;
 	for(int i = 0; i < dict_pos; i++){
 		if(streq(key, dict_array[i].key)) {
 			dict_array[i].value = *node;
-			flag= 0;
+			found= 0;
 		}
 	}
-	if(flag) {
+	if(found) {
 		dict_array[dict_pos].key = key;
 		dict_array[dict_pos].value = *node;
 		dict_pos++;
@@ -51,13 +44,22 @@ void dict_print_all() {
 	}
 }
 			
+void dict_init() {
+	dict_pos = 0;
+	struct Node none ={NODE_UNKNOWN,{0}};
+	dict_array[dict_pos].key = "\0";
+	dict_array[dict_pos].value = none;
+}
+
 void test_one_put_get() {
 	dict_init();
 	struct Node input = {NUMBER,{1}};
 	char *key = "one";
+
 	struct Node actual ={NODE_UNKNOWN,{0}};
 	dict_put(key, &input);
 	dict_get(key, &actual);
+
 	assert(actual.ntype == input.ntype);
 	assert(actual.u.number == input.u.number);
 }
@@ -68,15 +70,18 @@ void test_two_put_get() {
 	struct Node input2 = {NODE_LITERAL_NAME, {"hello"} };
 	char *key = "one";
 	char *key2 = "aisatu";
+
 	struct Node actual ={NODE_UNKNOWN,{0}};
+	struct Node actual2 ={NODE_UNKNOWN,{0}};
 	dict_put(key, &input);
 	dict_put(key2, &input2);
 	dict_get(key, &actual);
+	dict_get(key2, &actual2);
+
 	assert(actual.ntype == input.ntype);
 	assert(actual.u.number == input.u.number);
-	dict_get(key2, &actual);
-	assert(actual.ntype == input2.ntype);
-	assert(actual.u.number == input2.u.number);
+	assert(actual2.ntype == input2.ntype);
+	assert(actual2.u.number == input2.u.number);
 }
 
 void test_same_key() {
@@ -84,25 +89,31 @@ void test_same_key() {
 	struct Node input = {NUMBER,{1}};
 	struct Node input2 = {NODE_LITERAL_NAME, {"hello"} };
 	char *key = "one";
+
 	struct Node actual ={NODE_UNKNOWN,{0}};
+	struct Node actual2 ={NODE_UNKNOWN,{0}};
 	dict_put(key, &input);
 	dict_get(key, &actual);
+	dict_put(key, &input2);
+	dict_get(key, &actual2);
+
 	assert(actual.ntype == input.ntype);
 	assert(actual.u.number == input.u.number);
-	dict_put(key, &input2);
-	dict_get(key, &actual);
-	assert(actual.ntype == input2.ntype);
-	assert(actual.u.number == input2.u.number);
+	assert(actual2.ntype == input2.ntype);
+	assert(actual2.u.number == input2.u.number);
 }
 
 void test_none_get() {
 	int get;
 	dict_init();
 	char *key = "one";
+
 	struct Node actual ={NODE_UNKNOWN,{0}};
 	get = dict_get(key, &actual);
+
 	assert(get == 0);
 }
+
 #if 0
 int main() {
 	test_one_put_get();

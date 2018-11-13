@@ -71,12 +71,9 @@ void eval() {
 static void test_eval_num_one() {
     char *input = "123";
     int expect = 123;
-
     cl_getc_set_src(input);
-
     eval();
 
-    /* TODO: write code to pop stack top element */
     int actual = 0;
 	struct Node actual_data ={UNKNOWN,{0}};
 	stack_pop(&actual_data);
@@ -109,30 +106,28 @@ static void test_eval_num_two() {
 static void test_eval_add() {
     char *input = "1 2 add";
     int expect = 3;
-
     cl_getc_set_src(input);
-
     eval();
 
     int actual = 0;
 	struct Node actual_data ={UNKNOWN,{0}};
 	stack_pop(&actual_data);
+
 	actual = actual_data.u.number;
     assert(expect == actual);
 }
 
 static void test_def() {
     char *input = "/abc 12 def";
+	char *input2 = "abc abc";
     int expect1 = 12;
     int expect2 = 12;
-	struct Node actual_data ={UNKNOWN,{0}};
-
     cl_getc_set_src(input);
 	eval();
-
-	char *input2 = "abc abc";
     cl_getc_set_src(input2);
     eval();
+
+	struct Node actual_data ={UNKNOWN,{0}};
     int actual1 = 0;
     int actual2 = 0;
 	stack_pop(&actual_data);
