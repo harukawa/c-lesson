@@ -51,6 +51,14 @@ void dict_init() {
 	dict_array[dict_pos].value = none;
 }
 
+void assert_type_eq(int expect, struct Node *actual) {
+	assert(expect == actual->ntype);
+}
+
+void assert_num_eq(int expect, struct Node *actual) {
+	assert(expect == actual->u.number);
+}
+
 void test_one_put_get() {
 	dict_init();
 	struct Node input = {NUMBER,{1}};
@@ -59,9 +67,9 @@ void test_one_put_get() {
 	struct Node actual ={NODE_UNKNOWN,{0}};
 	dict_put(input_key, &input);
 	dict_get(input_key, &actual);
-
-	assert(actual.ntype == input.ntype);
-	assert(actual.u.number == input.u.number);
+	
+	assert_type_eq(input.ntype, &actual);
+	assert_num_eq(input.u.number, &actual);
 }
 
 void test_two_put_get() {
@@ -78,10 +86,10 @@ void test_two_put_get() {
 	dict_get(input_key, &actual);
 	dict_get(input_key2, &actual2);
 
-	assert(actual.ntype == input.ntype);
-	assert(actual.u.number == input.u.number);
-	assert(actual2.ntype == input2.ntype);
-	assert(actual2.u.name == input2.u.name);
+	assert_type_eq(input.ntype, &actual);
+	assert_num_eq(input.u.number, &actual);
+	assert_type_eq(input2.ntype, &actual2);
+	assert_num_eq(input2.u.number, &actual2);
 }
 
 void test_same_key() {
@@ -97,10 +105,10 @@ void test_same_key() {
 	dict_put(input_key, &input2);
 	dict_get(input_key, &actual2);
 
-	assert(actual.ntype == input.ntype);
-	assert(actual.u.number == input.u.number);
-	assert(actual2.ntype == input2.ntype);
-	assert(actual2.u.number == input2.u.number);
+	assert_type_eq(input.ntype, &actual);
+	assert_num_eq(input.u.number, &actual);
+	assert_type_eq(input2.ntype, &actual2);
+	assert_num_eq(input2.u.number, &actual2);
 }
 
 void test_none_get() {
@@ -109,9 +117,9 @@ void test_none_get() {
 	struct Node dummy ={NODE_UNKNOWN,{0}};
 
 	int actual;
-	get = dict_get(input_key, &actual);
+	actual = dict_get(input_key, &dummy);
 
-	assert(get == 0);
+	assert(actual == 0);
 }
 
 #if 0
