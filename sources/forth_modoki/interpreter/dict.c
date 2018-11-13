@@ -54,11 +54,11 @@ void dict_init() {
 void test_one_put_get() {
 	dict_init();
 	struct Node input = {NUMBER,{1}};
-	char *key = "one";
+	char *input_key = "one";
 
 	struct Node actual ={NODE_UNKNOWN,{0}};
-	dict_put(key, &input);
-	dict_get(key, &actual);
+	dict_put(input_key, &input);
+	dict_get(input_key, &actual);
 
 	assert(actual.ntype == input.ntype);
 	assert(actual.u.number == input.u.number);
@@ -68,15 +68,15 @@ void test_two_put_get() {
 	dict_init();
 	struct Node input = {NUMBER,{1}};
 	struct Node input2 = {NODE_LITERAL_NAME, {"hello"} };
-	char *key = "one";
-	char *key2 = "aisatu";
+	char *input_key = "one";
+	char *input_key2 = "aisatu";
 
 	struct Node actual ={NODE_UNKNOWN,{0}};
 	struct Node actual2 ={NODE_UNKNOWN,{0}};
-	dict_put(key, &input);
-	dict_put(key2, &input2);
-	dict_get(key, &actual);
-	dict_get(key2, &actual2);
+	dict_put(input_key, &input);
+	dict_put(input_key2, &input2);
+	dict_get(input_key, &actual);
+	dict_get(input_key2, &actual2);
 
 	assert(actual.ntype == input.ntype);
 	assert(actual.u.number == input.u.number);
@@ -88,14 +88,14 @@ void test_same_key() {
 	dict_init();
 	struct Node input = {NUMBER,{1}};
 	struct Node input2 = {NODE_LITERAL_NAME, {"hello"} };
-	char *key = "one";
+	char *input_key = "one";
 
 	struct Node actual ={NODE_UNKNOWN,{0}};
 	struct Node actual2 ={NODE_UNKNOWN,{0}};
-	dict_put(key, &input);
-	dict_get(key, &actual);
-	dict_put(key, &input2);
-	dict_get(key, &actual2);
+	dict_put(input_key, &input);
+	dict_get(input_key, &actual);
+	dict_put(input_key, &input2);
+	dict_get(input_key, &actual2);
 
 	assert(actual.ntype == input.ntype);
 	assert(actual.u.number == input.u.number);
@@ -106,10 +106,10 @@ void test_same_key() {
 void test_none_get() {
 	int get;
 	dict_init();
-	char *key = "one";
+	char *input_key = "one";
 
 	struct Node actual ={NODE_UNKNOWN,{0}};
-	get = dict_get(key, &actual);
+	get = dict_get(input_key, &actual);
 
 	assert(get == 0);
 }
