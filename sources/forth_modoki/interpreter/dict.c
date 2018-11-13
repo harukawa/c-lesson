@@ -11,14 +11,14 @@ struct KeyValue {
 static struct KeyValue dict_array[DICT_SIZE];
 
 void dict_put(char* key, struct Node *node) {
-	int found = 1;
+	int found = 0;
 	for(int i = 0; i < dict_pos; i++){
 		if(streq(key, dict_array[i].key)) {
 			dict_array[i].value = *node;
-			found= 0;
+			found= 1;
 		}
 	}
-	if(found) {
+	if(!found) {
 		dict_array[dict_pos].key = key;
 		dict_array[dict_pos].value = *node;
 		dict_pos++;
@@ -81,7 +81,7 @@ void test_two_put_get() {
 	assert(actual.ntype == input.ntype);
 	assert(actual.u.number == input.u.number);
 	assert(actual2.ntype == input2.ntype);
-	assert(actual2.u.number == input2.u.number);
+	assert(actual2.u.name == input2.u.name);
 }
 
 void test_same_key() {
@@ -104,11 +104,11 @@ void test_same_key() {
 }
 
 void test_none_get() {
-	int get;
 	dict_init();
 	char *input_key = "one";
+	struct Node dummy ={NODE_UNKNOWN,{0}};
 
-	struct Node actual ={NODE_UNKNOWN,{0}};
+	int actual;
 	get = dict_get(input_key, &actual);
 
 	assert(get == 0);
