@@ -125,6 +125,7 @@ void test_two_put_get() {
 	dict_put(input_key2, &input2);
 	dict_get(input_key, &actual);
 	dict_get(input_key2, &actual2);
+
 	assert_num_eq(&input, &actual);
 	assert_num_eq(&input2, &actual2);
 }
