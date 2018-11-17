@@ -107,7 +107,7 @@ void test_same_key() {
 	dict_get(input_key, &actual2);
 
 	assert_num_eq(&input, &actual);
-	assert_num_eq(&input2, &actual2);
+	assert_name_eq(&input2, &actual2);
 }
 
 void test_none_get() {
