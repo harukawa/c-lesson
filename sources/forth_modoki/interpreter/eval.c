@@ -9,7 +9,7 @@ int streq(char *s1, char *s2) {
 	}
 }
 
-void (*add_op)(){
+void add_op(){
 	struct Node node ={UNKNOWN,{0}};
 	stack_pop(&node);
 	int one = node.u.number;
@@ -40,10 +40,7 @@ void eval() {
                 case CLOSE_CURLY:
                     break;
                 case EXECUTABLE_NAME:
-					if(dict_get(token.u.name, &node)) {
-					//if(dict_get(token.u.name, "add")) {
-						node.u.cfunc();
-					} else if(streq(token.u.name, "def")) {
+					if(streq(token.u.name, "def")) {
 						int val;
 						char* literal_name;
 						stack_pop(&node);
@@ -54,7 +51,11 @@ void eval() {
 						node.u.number = val;
 						dict_put(literal_name, &node);
 					} else if(dict_get(token.u.name, &node)) {
-						stack_push(&node);
+						if(node.ntype == NODE_C_FUNC) {
+							node.u.cfunc();
+					    } else if(dict_get(token.u.name, &node)) {
+							stack_push(&node);
+						}
 					}
                     break;
                 case LITERAL_NAME:
@@ -69,6 +70,16 @@ void eval() {
         }
 	}while(ch != EOF);
 
+}
+
+
+void register_one_primitive(char *input_key, void (*cfunc)(void)) {
+	struct Node node ={NODE_C_FUNC, {.cfunc = cfunc}};
+	dict_put(input_key, &node);
+}
+
+void register_primitives(){
+	register_one_primitive("add", add_op);
 }
 
 static void test_eval_num_one() {
@@ -143,12 +154,9 @@ static void test_def() {
 	
 }
 
-void register_primitives() {
-	struct Node actual_data ={UNKNOWN,{0}};
-	
-}
 
 int main() {
+	register_primitives();
 	test_eval_num_one();
 	test_eval_num_two();
 	test_eval_add();

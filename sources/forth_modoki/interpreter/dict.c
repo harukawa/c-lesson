@@ -10,7 +10,7 @@ struct HashNode {
 #define DICT_SIZE 16
 struct HashNode *dict_array[DICT_SIZE];
 
-int hash(char *str) {
+static int hash(char *str) {
    unsigned int val = 0;
    while(*str) {
        val += *str++;
@@ -18,7 +18,7 @@ int hash(char *str) {
    return (int)(val% DICT_SIZE);
 }
 
-void update_or_insert_list(struct HashNode *head, char *input_key, struct Node *input_value) {
+static void update_or_insert_list(struct HashNode *head, char *input_key, struct Node *input_value) {
 	struct HashNode *hash_node = head;
 	while(hash_node != NULL) {
 		if(streq(hash_node->key, input_key)) {
@@ -48,7 +48,6 @@ void dict_put(char *input_key, struct Node *value) {
 		head->key = input_key;
 		head->value = *value;
 		dict_array[idx] = head;
-		head = dict_array[idx];
 	} else {
 		update_or_insert_list(head, input_key, value);
 	}
@@ -91,17 +90,19 @@ void dict_init(){
 	}
 }
 
-void assert_name_eq(struct Node *expect, struct Node *actual) {
-	assert(expect->ntype == actual->ntype);
-	assert(expect->u.name == actual->u.name);
+void assert_name_eq(char *expect, struct Node *actual) {
+	assert(expect == actual->u.name);
 }
 
-void assert_num_eq(struct Node *expect, struct Node *actual) {
-	assert(expect->ntype == actual->ntype);
-	assert(expect->u.number == actual->u.number);
+void assert_num_eq(int expect, struct Node *actual) {
+	assert(expect == actual->u.number);
 }
 
-void test_one_put_get() {
+void assert_type_eq(int expect, struct Node *actual) {
+	assert(expect == actual->ntype);
+}
+
+static void test_one_put_get() {
 	dict_init();
 	struct Node input = {NODE_NUMBER,{1}};
 	char *input_key = "one";
@@ -109,10 +110,11 @@ void test_one_put_get() {
 	struct Node actual ={NODE_UNKNOWN,{0}};
 	dict_put(input_key, &input);
 	dict_get(input_key, &actual);
-	assert_num_eq(&input, &actual);
+	assert_type_eq(input.ntype, &actual);
+	assert_num_eq(input.u.number, &actual);
 }
 
-void test_two_put_get() {
+static void test_two_put_get() {
 	dict_init();
 	struct Node input = {NODE_NUMBER,{1}};
 	struct Node input2 = {NODE_LITERAL_NAME, {"hello"} };
@@ -126,11 +128,13 @@ void test_two_put_get() {
 	dict_get(input_key, &actual);
 	dict_get(input_key2, &actual2);
 
-	assert_num_eq(&input, &actual);
-	assert_num_eq(&input2, &actual2);
+	assert_type_eq(input.ntype, &actual);
+	assert_num_eq(input.u.number, &actual);
+	assert_type_eq(input2.ntype, &actual2);
+	assert_name_eq(input2.u.name, &actual2);
 }
 
-void test_same_key() {
+static void test_same_key() {
 	dict_init();
 	struct Node input = {NODE_NUMBER,{1}};
 	struct Node input2 = {NODE_LITERAL_NAME, {"hello"} };
@@ -143,11 +147,13 @@ void test_same_key() {
 	dict_put(input_key, &input2);
 	dict_get(input_key, &actual2);
 
-	assert_num_eq(&input, &actual);
-	assert_name_eq(&input2, &actual2);
+	assert_type_eq(input.ntype, &actual);
+	assert_num_eq(input.u.number, &actual);
+	assert_type_eq(input2.ntype, &actual2);
+	assert_name_eq(input2.u.name, &actual2);
 }
 
-void test_none_get() {
+static void test_none_get() {
 	dict_init();
 	char *input_key = "one";
 	struct Node dummy ={NODE_UNKNOWN,{0}};
@@ -158,7 +164,7 @@ void test_none_get() {
 	assert(actual == 0);
 }
 
-void test_hash_collision() {
+static void test_hash_collision() {
 	dict_init();
 	struct Node input = {NODE_NUMBER,{1}};
 	struct Node input2 = {NODE_LITERAL_NAME, {"hello"} };
@@ -177,11 +183,15 @@ void test_hash_collision() {
 	dict_get(input_key2, &actual2);
 	dict_get(input_key3, &actual3);
 
-	assert_num_eq(&input, &actual);
-	assert_name_eq(&input2, &actual2);
-	assert_name_eq(&input3, &actual3);
+	assert_type_eq(input.ntype, &actual);
+	assert_num_eq(input.u.number, &actual);
+	assert_type_eq(input2.ntype, &actual2);
+	assert_name_eq(input2.u.name, &actual2);
+	assert_type_eq(input3.ntype, &actual3);
+	assert_name_eq(input3.u.name, &actual3);
 }
 
+#if 0
 int main() {
 	test_one_put_get();
 	test_two_put_get();
@@ -190,3 +200,4 @@ int main() {
 	test_hash_collision();
 	return 0;
 }
+#endif

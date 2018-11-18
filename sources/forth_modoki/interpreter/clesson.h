@@ -24,7 +24,8 @@ struct Token {
 enum NodeType {
 	NODE_NUMBER,
 	NODE_LITERAL_NAME,
-	NODE_UNKNOWN
+	NODE_UNKNOWN,
+	NODE_C_FUNC
 };
 
 struct Node {
@@ -32,8 +33,10 @@ struct Node {
 	union {
 		int number;
 		char *name;
+		void (*cfunc)();
 	}u;
 };
+
 
 int cl_getc();
 void cl_getc_set_src(char* str);
@@ -47,5 +50,3 @@ int dict_get(char* key, struct Node *out_node);
 void dict_print_all();
 int streq(char *s1, char *s2);
 
-void dict_put(char* key, struct Node *node);
-int dict_get(char* key, struct Node *out_node);
