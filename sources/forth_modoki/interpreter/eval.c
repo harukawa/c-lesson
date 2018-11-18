@@ -139,7 +139,7 @@ static void test_def() {
     assert(expect2 == actual2);
 	
 }
-
+#if 0
 int main() {
 	test_eval_num_one();
 	test_eval_num_two();
@@ -147,3 +147,4 @@ int main() {
 	test_def();
 	return 1;
 }
+#endif
