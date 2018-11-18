@@ -90,16 +90,23 @@ void dict_init(){
 	}
 }
 
-void assert_name_eq(char *expect, struct Node *actual) {
+// assert NodeType
+void assert_type_eq(int expect, struct Node *actual) {
+	assert(expect == actual->ntype);
+}
+
+// assert Node NODE_LITERAL_NAME
+void assert_lname_eq(char *expect, struct Node *actual) {
+	enum NodeType type = NODE_LITERAL_NAME;
+    assert_type_eq(type, actual);
 	assert(expect == actual->u.name);
 }
 
+// assert Node NODE_NUMBER
 void assert_num_eq(int expect, struct Node *actual) {
+	enum NodeType type = NODE_NUMBER;
+    assert_type_eq(type, actual);
 	assert(expect == actual->u.number);
-}
-
-void assert_type_eq(int expect, struct Node *actual) {
-	assert(expect == actual->ntype);
 }
 
 static void test_one_put_get() {
@@ -110,7 +117,6 @@ static void test_one_put_get() {
 	struct Node actual ={NODE_UNKNOWN,{0}};
 	dict_put(input_key, &input);
 	dict_get(input_key, &actual);
-	assert_type_eq(input.ntype, &actual);
 	assert_num_eq(input.u.number, &actual);
 }
 
@@ -128,10 +134,8 @@ static void test_two_put_get() {
 	dict_get(input_key, &actual);
 	dict_get(input_key2, &actual2);
 
-	assert_type_eq(input.ntype, &actual);
 	assert_num_eq(input.u.number, &actual);
-	assert_type_eq(input2.ntype, &actual2);
-	assert_name_eq(input2.u.name, &actual2);
+	assert_lname_eq(input2.u.name, &actual2);
 }
 
 static void test_same_key() {
@@ -147,10 +151,8 @@ static void test_same_key() {
 	dict_put(input_key, &input2);
 	dict_get(input_key, &actual2);
 
-	assert_type_eq(input.ntype, &actual);
 	assert_num_eq(input.u.number, &actual);
-	assert_type_eq(input2.ntype, &actual2);
-	assert_name_eq(input2.u.name, &actual2);
+	assert_lname_eq(input2.u.name, &actual2);
 }
 
 static void test_none_get() {
@@ -183,12 +185,9 @@ static void test_hash_collision() {
 	dict_get(input_key2, &actual2);
 	dict_get(input_key3, &actual3);
 
-	assert_type_eq(input.ntype, &actual);
 	assert_num_eq(input.u.number, &actual);
-	assert_type_eq(input2.ntype, &actual2);
-	assert_name_eq(input2.u.name, &actual2);
-	assert_type_eq(input3.ntype, &actual3);
-	assert_name_eq(input3.u.name, &actual3);
+	assert_lname_eq(input2.u.name, &actual2);
+	assert_lname_eq(input3.u.name, &actual3);
 }
 
 int main() {
