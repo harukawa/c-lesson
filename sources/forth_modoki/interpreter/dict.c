@@ -97,15 +97,11 @@ void assert_type_eq(int expect, struct Node *actual) {
 
 // assert Node NODE_LITERAL_NAME
 void assert_lname_eq(char *expect, struct Node *actual) {
-	enum NodeType type = NODE_LITERAL_NAME;
-    assert_type_eq(type, actual);
 	assert(expect == actual->u.name);
 }
 
-// assert Node NODE_NUMBER
+// assert Node NUMBER
 void assert_num_eq(int expect, struct Node *actual) {
-	enum NodeType type = NODE_NUMBER;
-    assert_type_eq(type, actual);
 	assert(expect == actual->u.number);
 }
 
@@ -113,11 +109,14 @@ static void test_one_put_get() {
 	dict_init();
 	struct Node input = {NODE_NUMBER,{1}};
 	char *input_key = "one";
+	int expect = 1;
 
 	struct Node actual ={NODE_UNKNOWN,{0}};
 	dict_put(input_key, &input);
 	dict_get(input_key, &actual);
-	assert_num_eq(input.u.number, &actual);
+
+	assert_type_eq(NODE_NUMBER, &actual);
+	assert_num_eq(expect, &actual);
 }
 
 static void test_two_put_get() {
@@ -126,6 +125,8 @@ static void test_two_put_get() {
 	struct Node input2 = {NODE_LITERAL_NAME, {"hello"} };
 	char *input_key = "one";
 	char *input_key2 = "aisatu";
+	int expect = 1;
+	char *expect2 = "hello";
 
 	struct Node actual ={NODE_UNKNOWN,{0}};
 	struct Node actual2 ={NODE_UNKNOWN,{0}};
@@ -134,8 +135,10 @@ static void test_two_put_get() {
 	dict_get(input_key, &actual);
 	dict_get(input_key2, &actual2);
 
-	assert_num_eq(input.u.number, &actual);
-	assert_lname_eq(input2.u.name, &actual2);
+	assert_type_eq(NODE_NUMBER, &actual);
+	assert_num_eq(expect, &actual);
+	assert_type_eq(NODE_LITERAL_NAME, &actual2);
+	assert_lname_eq(expect2, &actual2);
 }
 
 static void test_same_key() {
@@ -143,6 +146,8 @@ static void test_same_key() {
 	struct Node input = {NODE_NUMBER,{1}};
 	struct Node input2 = {NODE_LITERAL_NAME, {"hello"} };
 	char *input_key = "one";
+	int expect = 1;
+	char *expect2 = "hello";
 
 	struct Node actual ={NODE_UNKNOWN,{0}};
 	struct Node actual2 ={NODE_UNKNOWN,{0}};
@@ -151,8 +156,10 @@ static void test_same_key() {
 	dict_put(input_key, &input2);
 	dict_get(input_key, &actual2);
 
-	assert_num_eq(input.u.number, &actual);
-	assert_lname_eq(input2.u.name, &actual2);
+	assert_type_eq(NODE_NUMBER, &actual);
+	assert_num_eq(expect, &actual);
+	assert_type_eq(NODE_LITERAL_NAME, &actual2);
+	assert_lname_eq(expect2, &actual2);
 }
 
 static void test_none_get() {
@@ -174,6 +181,9 @@ static void test_hash_collision() {
 	char *input_key = "one";
 	char *input_key2 = "eno";
 	char *input_key3 = "noe";
+	int expect = 1;
+	char *expect2 = "hello";
+	char *expect3 = "good";
 
 	struct Node actual ={NODE_UNKNOWN,{0}};
 	struct Node actual2 ={NODE_UNKNOWN,{0}};
@@ -184,10 +194,13 @@ static void test_hash_collision() {
 	dict_get(input_key, &actual);
 	dict_get(input_key2, &actual2);
 	dict_get(input_key3, &actual3);
-
-	assert_num_eq(input.u.number, &actual);
-	assert_lname_eq(input2.u.name, &actual2);
-	assert_lname_eq(input3.u.name, &actual3);
+   
+	assert_type_eq(NODE_NUMBER, &actual);
+	assert_num_eq(expect, &actual);
+	assert_type_eq(NODE_LITERAL_NAME, &actual2);
+	assert_lname_eq(expect2, &actual2);
+	assert_type_eq(NODE_LITERAL_NAME, &actual3);
+	assert_lname_eq(expect3, &actual3);
 }
 
 int main() {
