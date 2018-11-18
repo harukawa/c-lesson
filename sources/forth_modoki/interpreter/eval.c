@@ -9,6 +9,15 @@ int streq(char *s1, char *s2) {
 	}
 }
 
+void (*add_op)(){
+	struct Node node ={UNKNOWN,{0}};
+	stack_pop(&node);
+	int one = node.u.number;
+	stack_pop(&node);
+	int two = node.u.number;
+	node.u.number = one+two;
+	stack_push(&node);
+}
 
 void eval() {
 	int ch = EOF;
@@ -31,15 +40,9 @@ void eval() {
                 case CLOSE_CURLY:
                     break;
                 case EXECUTABLE_NAME:
-					if(streq(token.u.name, "add")) {
-						int one,two;
-						stack_pop(&node);
-						one = node.u.number;
-						stack_pop(&node);
-						two = node.u.number;
-						node.u.number = one+two;
-						stack_push(&node);
-
+					if(dict_get(token.u.name, &node)) {
+					//if(dict_get(token.u.name, "add")) {
+						node.u.cfunc();
 					} else if(streq(token.u.name, "def")) {
 						int val;
 						char* literal_name;
@@ -137,6 +140,11 @@ static void test_def() {
 
     assert(expect1 == actual1);
     assert(expect2 == actual2);
+	
+}
+
+void register_primitives() {
+	struct Node actual_data ={UNKNOWN,{0}};
 	
 }
 
