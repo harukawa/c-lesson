@@ -62,7 +62,6 @@ static void div_op() {
 	stack_push(&node);
 }
 
-
 void eval() {
 	int ch = EOF;
 	struct Token token = {UNKNOWN, {0} };
@@ -233,7 +232,6 @@ static void test_eval_div() {
 	actual = actual_data.u.number;
     assert(expect == actual);
 }
-
 
 int main() {
 	register_primitives();
