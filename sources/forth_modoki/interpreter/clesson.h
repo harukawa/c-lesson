@@ -24,9 +24,13 @@ struct Token {
 enum NodeType {
 	NODE_NUMBER,
 	NODE_LITERAL_NAME,
+	NODE_EXECUTABLE_NAME,
+	NODE_EXECUTABLE_ARRAY,
 	NODE_UNKNOWN,
 	NODE_C_FUNC
 };
+
+
 
 struct Node {
 	enum NodeType ntype;
@@ -34,9 +38,14 @@ struct Node {
 		int number;
 		char *name;
 		void (*cfunc)();
+		struct NodeArray *byte_codes;
 	}u;
 };
 
+struct NodeArray {
+	int len;
+	struct Node nodes[0];
+};
 
 int cl_getc();
 void cl_getc_set_src(char* str);
@@ -50,3 +59,6 @@ int dict_get(char* key, struct Node *out_node);
 void dict_print_all();
 int streq(char *s1, char *s2);
 
+void assert_lname_eq(char *expect, struct Node *actual);
+void assert_num_eq(int expect, struct Node *actual);
+void assert_type_eq(int expect, struct Node *actual);
