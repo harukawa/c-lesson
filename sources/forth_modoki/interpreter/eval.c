@@ -242,5 +242,5 @@ int main() {
 	test_eval_mul();
 	test_eval_div();
 	test_def();
-	return 1;
+	return 0;
 }
