@@ -111,11 +111,6 @@ void eval_exec_array(struct NodeArray *byte_codes) {
 				stack_push(&byte_codes->nodes[i]);
 				break;
 
-            case OPEN_CURLY:
-				compile_exec_array(&byte_codes->nodes[i]);
-				stack_push(&byte_codes->nodes[i]);
-                break;
-
 			case NODE_LITERAL_NAME:
 				stack_push(&byte_codes->nodes[i]);
 				break;
