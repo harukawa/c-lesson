@@ -80,8 +80,8 @@ static void compile_exec_array(struct Node *out_node) {
             case SPACE:
                 break;
             case OPEN_CURLY:
-				compile_exec_array(&node);
-				stack_push(&node);
+				compile_exec_array(&node[count]);
+				count++;
                 break;
             case CLOSE_CURLY:
                 break;
@@ -128,10 +128,10 @@ void eval_exec_array(struct NodeArray *byte_codes) {
 				if(dict_get(byte_codes->nodes[i].u.name, &node)) {
 					if(node.ntype == NODE_C_FUNC) {
 						node.u.cfunc();
-					} else if(byte_codes->nodes[i].u.name == NODE_EXECUTABLE_ARRAY) {
+					} else if(node.ntype == NODE_EXECUTABLE_ARRAY) {
 						eval_exec_array(node.u.byte_codes);					
 					} else {
-						stack_push(&byte_codes->nodes[i]);
+						stack_push(&node);
 					}
 				}
 				break;
@@ -351,6 +351,30 @@ static void test_compile_two(){
     assert_num_eq(expect2, &actual_node2);
 }
 
+static void test_compile_nest(){
+	char *input = "{ 1 { 2 } 3 }";
+    int expect = 1;
+	int expect2 = 2;
+	int expect3 = 3;
+    cl_getc_set_src(input);
+    eval();
+
+    int actual = 0;
+	struct Node actual_data ={UNKNOWN,{0}};
+	struct Node actual_node;
+	struct Node actual_node2;
+	struct Node actual_node3;
+	stack_pop(&actual_data);
+
+	actual_node = actual_data.u.byte_codes->nodes[0];
+	actual_node2 = actual_data.u.byte_codes->nodes[1].u.byte_codes->nodes[0];
+	actual_node3 = actual_data.u.byte_codes->nodes[2];
+	assert_type_eq(NODE_EXECUTABLE_ARRAY, &actual_data);
+    assert_num_eq(expect, &actual_node);
+    assert_num_eq(expect2, &actual_node2);
+    assert_num_eq(expect3, &actual_node3);
+}
+
 static void test_executable_array(){
 	char *input = "/abc { 1 2 add } def abc";
     int expect = 3;
@@ -365,13 +389,17 @@ static void test_executable_array(){
 }
 
 static void test_executable_array_nest(){
-	char *input = "/ZZ {6} def";
-	char *input2 = "/YY {4 ZZ 5} def";
-	char *input3 = "/XX {1 2 YY 3} def";
-    int expect[6] = {1,2,4,6,5,3};
+	char *input = "/ZZ { 6 } def";
+	char *input2 = "/YY { 4 ZZ 5 } def";
+	char *input3 = "/XX { 1 2 YY 3 } def XX";
+    int expect[6] = {3,5,6,4,2,1};
     cl_getc_set_src(input);
     eval();
-	printf("ss\n");
+    cl_getc_set_src(input2);
+    eval();
+    cl_getc_set_src(input3);
+    eval();
+
 	struct Node actual[6];
 	int i;
 	for(i = 0;i<6;i++) {
@@ -395,8 +423,8 @@ int main() {
 	test_def();
 	test_compile_one();
 	test_compile_two();
+	test_compile_nest();
 	test_executable_array();
-	printf("nest\n");
 	test_executable_array_nest();
 	return 0;
 }
