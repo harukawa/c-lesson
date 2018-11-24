@@ -77,13 +77,9 @@ static void compile_exec_array(struct Node *out_node) {
 				node[count].u.number = token.u.number;
 				count++;
                 break;
-            case SPACE:
-                break;
             case OPEN_CURLY:
 				compile_exec_array(&node[count]);
 				count++;
-                break;
-            case CLOSE_CURLY:
                 break;
             case EXECUTABLE_NAME:
 				node[count].ntype = NODE_EXECUTABLE_NAME;
