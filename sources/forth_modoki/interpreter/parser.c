@@ -101,11 +101,18 @@ int parse_one(int prev_ch, struct Token *out_token) {
 
 	//PARCENT
 	}else if(single_ch == '%'){
-		do {
+		while(1){
 			single_ch = cl_getc();
-		}while(single_ch != EOF);
-		out_token->ltype = END_OF_FILE;
-		return EOF;
+			if(single_ch == '\n'){
+				out_token->ltype = SPACE;
+				out_token->u.onechar = ' ';	
+				return single_ch;
+			}
+			if(single_ch == EOF){
+				out_token->ltype = END_OF_FILE;
+				return EOF;
+			}
+		}
 
 	//LINE_FEED
 	}else if(single_ch == '\n'){
@@ -231,8 +238,9 @@ static void test_parse_one_literal(){
 }
 
 static void test_parse_percent(){
-	char *input = "%";
-    int expect = END_OF_FILE;
+	char *input = "%\n";
+	char* expect_name = " ";
+	int expect_type = SPACE;
 
     struct Token token = {UNKNOWN, {0}};
     int ch;
@@ -240,8 +248,22 @@ static void test_parse_percent(){
     cl_getc_set_src(input);
     ch = parse_one(EOF, &token);
 
+    assert(token.ltype == expect_type);
+    assert( *expect_name == token.u.name);
+}
+
+static void test_parse_percent_EOF(){
+	char *input = "%";
+	int expect_type = END_OF_FILE;
+
+    struct Token token = {UNKNOWN, {0}};
+    int ch;
+
+    cl_getc_set_src(input);
+    ch = parse_one(EOF, &token);
+
+    assert(token.ltype == expect_type);
     assert(ch == EOF);
-    assert(token.ltype == expect);
 }
 
 static void test_parse_line_feed(){
@@ -266,6 +288,7 @@ static void unit_tests() {
 	test_parse_one_executable();
 	test_parse_one_literal();
 	test_parse_percent();
+	test_parse_percent_EOF();
 	test_parse_line_feed();
 }
 #if 0

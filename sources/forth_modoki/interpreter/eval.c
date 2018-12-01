@@ -88,7 +88,7 @@ static void gt_op() {
 	struct Node node ={NODE_NUMBER,{0}};
 	int one,two;
 	two_number_pop(&one,&two);
-	if(one < two) {
+	if(two > one) {
 		node.u.number = 1;
 	}
 	stack_push(&node);
@@ -98,7 +98,7 @@ static void ge_op() {
 	struct Node node ={NODE_NUMBER,{0}};
 	int one,two;
 	two_number_pop(&one,&two);
-	if(one <= two) {
+	if(two >= one) {
 		node.u.number = 1;
 	}
 	stack_push(&node);
@@ -108,7 +108,7 @@ static void lt_op() {
 	struct Node node ={NODE_NUMBER,{0}};
 	int one,two;
 	two_number_pop(&one,&two);
-	if(one > two) {
+	if(two < one) {
 		node.u.number = 1;
 	}
 	stack_push(&node);
@@ -118,7 +118,7 @@ static void le_op() {
 	struct Node node ={NODE_NUMBER,{0}};
 	int one,two;
 	two_number_pop(&one,&two);
-	if(one >= two) {
+	if(two <= one) {
 		node.u.number = 1;
 	}
 	stack_push(&node);
@@ -148,15 +148,7 @@ static void dup_op() {
 static void index_op() {
 	struct Node node;
 	stack_pop(&node);
-	int n = node.u.number,i;
-	struct Node nodes[n];
-	for(i = 0;i<n;i++) {
-		stack_pop(&nodes[i]);
-	}
-	node = nodes[n-1];
-	for(i = n-1; i >= 0;i--) {
-		stack_push(&nodes[i]);
-	}
+	stack_check(&node, node.u.number);
 	stack_push(&node);
 }
 
@@ -184,9 +176,9 @@ static void roll_op() {
 }
 
 static void exec_op() {
-	struct Node node;
-	stack_pop(&node);
-	eval_exec_array(node.u.byte_codes);					
+	struct Node proc;
+	stack_pop(&proc);
+	eval_exec_array(proc.u.byte_codes);					
 }
 
 static void if_op() {
@@ -214,13 +206,13 @@ static void ifelse_op() {
 }
 
 static void repeat_op() {
-	struct Node node;
+	struct Node proc;
 	struct Node num;
-	stack_pop(&node);
+	stack_pop(&proc);
 	stack_pop(&num);
 	int n = num.u.name;
 	for(int i = 0; i<n; i++) {
-		eval_exec_array(node.u.byte_codes);
+		eval_exec_array(proc.u.byte_codes);
 	}
 }
 
@@ -893,4 +885,3 @@ int main(int argc, char *argv[]) {
 	}
 	return 0;
 }
-

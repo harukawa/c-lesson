@@ -53,6 +53,7 @@ void cl_getc_set_fp(FILE* input_fp);
 void stack_init();
 void stack_push(struct Node *node);
 int stack_pop(struct Node *out_node);
+void stack_check(struct Node *out_node, int n);
 int parse_one(int prev_ch, struct Token *out_token);
 
 void dict_put(char* key, struct Node *node);

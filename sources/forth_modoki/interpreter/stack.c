@@ -25,6 +25,18 @@ int stack_pop(struct Node *out_node) {
 		return 1;
 	}
 }
+
+void stack_check(struct Node *out_node, int n) {
+	struct Node pop_nodes[n];
+	int i;
+	for(i = 0; i<n; i++) {
+		stack_pop(&pop_nodes[i]);
+	}
+	*out_node = pop_nodes[n-1];
+	for(i = n-1; i >= 0; i--){
+		stack_push(&pop_nodes[i]);
+	}
+}
 	
 void stack_print_all() {
 	struct Node node = {UNKNOWN,{0}};
