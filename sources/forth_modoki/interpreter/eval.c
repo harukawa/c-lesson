@@ -64,6 +64,183 @@ static void div_op() {
 	stack_push(&node);
 }
 
+static void eq_op() {
+	struct Node node ={NODE_NUMBER,{0}};
+	int one,two;
+	two_number_pop(&one,&two);
+	if(one == two) {
+		node.u.number = 1;
+	}
+	stack_push(&node);
+}
+
+static void neq_op() {
+	struct Node node ={NODE_NUMBER,{0}};
+	int one,two;
+	two_number_pop(&one,&two);
+	if(one != two) {
+		node.u.number = 1;
+	}
+	stack_push(&node);
+}
+
+static void gt_op() {
+	struct Node node ={NODE_NUMBER,{0}};
+	int one,two;
+	two_number_pop(&one,&two);
+	if(one < two) {
+		node.u.number = 1;
+	}
+	stack_push(&node);
+}
+
+static void ge_op() {
+	struct Node node ={NODE_NUMBER,{0}};
+	int one,two;
+	two_number_pop(&one,&two);
+	if(one <= two) {
+		node.u.number = 1;
+	}
+	stack_push(&node);
+}
+
+static void lt_op() {
+	struct Node node ={NODE_NUMBER,{0}};
+	int one,two;
+	two_number_pop(&one,&two);
+	if(one > two) {
+		node.u.number = 1;
+	}
+	stack_push(&node);
+}
+
+static void le_op() {
+	struct Node node ={NODE_NUMBER,{0}};
+	int one,two;
+	two_number_pop(&one,&two);
+	if(one >= two) {
+		node.u.number = 1;
+	}
+	stack_push(&node);
+}
+
+static void pop_op() {
+	struct Node node ={NODE_NUMBER,{0}};
+	stack_pop(&node);
+}
+
+static void exch_op() {
+	struct Node node;
+	struct Node node2;
+	stack_pop(&node);
+	stack_pop(&node2);
+	stack_push(&node);
+	stack_push(&node2);
+}
+
+static void dup_op() {
+	struct Node node;
+	stack_pop(&node);
+	stack_push(&node);
+	stack_push(&node);
+}
+
+static void index_op() {
+	struct Node node;
+	stack_pop(&node);
+	int n = node.u.number,i;
+	struct Node nodes[n];
+	for(i = 0;i<n;i++) {
+		stack_pop(&nodes[i]);
+	}
+	node = nodes[n-1];
+	for(i = n-1; i >= 0;i--) {
+		stack_push(&nodes[i]);
+	}
+	stack_push(&node);
+}
+
+static void roll_op() {
+	struct Node node;
+	int i,j,n;
+	two_number_pop(&j,&n);
+	struct Node nodes[n];
+	for(i = 0;i<n;i++) {
+		stack_pop(&nodes[i]);
+	}
+	if(n < j) {
+		j = j % n;
+	}
+	i = 0;
+	int index = n - 1 - (n -j);
+	while(i<n) {
+		stack_push(&nodes[index]);
+		i++;
+		index--;
+		if(index < 0) {
+			index = n -1;
+		}
+	}
+}
+
+static void exec_op() {
+	struct Node node;
+	stack_pop(&node);
+	eval_exec_array(node.u.byte_codes);					
+}
+
+static void if_op() {
+	struct Node bool1;
+	struct Node proc1;
+	stack_pop(&proc1);
+	stack_pop(&bool1);
+	if(bool1.u.number) {
+		eval_exec_array(proc1.u.byte_codes);
+	}
+}
+
+static void ifelse_op() {
+	struct Node bool1;
+	struct Node proc1;
+	struct Node proc2;
+	stack_pop(&proc2);
+	stack_pop(&proc1);
+	stack_pop(&bool1);
+	if(bool1.u.number) {
+		eval_exec_array(proc1.u.byte_codes);
+	} else {
+		eval_exec_array(proc2.u.byte_codes);
+	}
+}
+
+static void repeat_op() {
+	struct Node node;
+	struct Node num;
+	stack_pop(&node);
+	stack_pop(&num);
+	int n = num.u.name;
+	for(int i = 0; i<n; i++) {
+		eval_exec_array(node.u.byte_codes);
+	}
+}
+
+static void while_op() {
+	struct Node proc1;
+	struct Node proc2;
+	struct Node node;
+	stack_pop(&proc2);
+	stack_pop(&proc1);
+	while(1) {
+		eval_exec_array(proc1.u.byte_codes);
+		stack_pop(&node);
+		if(node.u.number) {
+			eval_exec_array(proc2.u.byte_codes);
+		} else {
+			break;
+		}
+	}
+}
+
 static void compile_exec_array(struct Node *out_node) {
 	int ch = EOF, count = 0;
 	struct Token token = {UNKNOWN, {0} };
@@ -132,6 +309,8 @@ void eval_exec_array(struct NodeArray *byte_codes) {
 	}
 }
 
+
+
 void eval() {
 	int ch = EOF;
 	struct Token token = {UNKNOWN, {0} };
@@ -189,6 +368,22 @@ static void register_primitives(){
 	register_one_primitive("sub", sub_op);
 	register_one_primitive("mul", mul_op);
 	register_one_primitive("div", div_op);
+	register_one_primitive("eq", eq_op);
+	register_one_primitive("neq", neq_op);
+	register_one_primitive("gt", gt_op);
+	register_one_primitive("ge", ge_op);
+	register_one_primitive("lt", lt_op);
+	register_one_primitive("le", le_op);
+	register_one_primitive("pop", pop_op);
+	register_one_primitive("exch", exch_op);
+	register_one_primitive("dup", dup_op);
+	register_one_primitive("index", index_op);
+	register_one_primitive("roll", roll_op);
+	register_one_primitive("exec", exec_op);
+	register_one_primitive("if", if_op);
+	register_one_primitive("ifelse", ifelse_op);
+	register_one_primitive("repeat", repeat_op);
+	register_one_primitive("while", while_op);
 }
 
 static void test_eval_num_one() {
@@ -403,8 +598,242 @@ static void test_executable_array_nest(){
 	}
 }
 
-int main() {
-	register_primitives();
+
+static void test_eq(){
+	char *input = "1 1 eq";
+    int expect = 1;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual ={UNKNOWN,{0}};
+	stack_pop(&actual);
+
+	assert_type_eq(NODE_NUMBER, &actual);
+    assert_num_eq(expect, &actual);
+}
+
+static void test_neq(){
+	char *input = "2 1 neq";
+    int expect = 1;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual ={UNKNOWN,{0}};
+	stack_pop(&actual);
+
+	assert_type_eq(NODE_NUMBER, &actual);
+    assert_num_eq(expect, &actual);
+}
+
+static void test_gt(){
+	char *input = "2 1 gt";
+    int expect = 1;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual ={UNKNOWN,{0}};
+	stack_pop(&actual);
+
+	assert_type_eq(NODE_NUMBER, &actual);
+    assert_num_eq(expect, &actual);
+}
+
+static void test_ge(){
+	char *input = "2 1 ge";
+    int expect = 1;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual ={UNKNOWN,{0}};
+	stack_pop(&actual);
+
+	assert_type_eq(NODE_NUMBER, &actual);
+    assert_num_eq(expect, &actual);
+}
+
+static void test_lt(){
+	char *input = "1 2 lt";
+    int expect = 1;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual ={UNKNOWN,{0}};
+	stack_pop(&actual);
+
+	assert_type_eq(NODE_NUMBER, &actual);
+    assert_num_eq(expect, &actual);
+}
+
+static void test_le(){
+	char *input = "1 2 le";
+    int expect = 1;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual ={UNKNOWN,{0}};
+	stack_pop(&actual);
+
+	assert_type_eq(NODE_NUMBER, &actual);
+    assert_num_eq(expect, &actual);
+}
+
+
+static void test_pop(){
+	char *input = "1 2 pop";
+    int expect = 1;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual ={UNKNOWN,{0}};
+	stack_pop(&actual);
+
+	assert_type_eq(NODE_NUMBER, &actual);
+    assert_num_eq(expect, &actual);
+}
+
+static void test_exch(){
+	char *input = "2 1 exch";
+    int expect = 2;
+	int expect2 = 1;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual;
+	struct Node actual2;
+	stack_pop(&actual);
+	stack_pop(&actual2);
+
+	assert_type_eq(NODE_NUMBER, &actual);
+	assert_type_eq(NODE_NUMBER, &actual2);
+    assert_num_eq(expect, &actual);
+    assert_num_eq(expect2, &actual2);
+}
+
+static void test_dup(){
+	char *input = "1 4 dup";
+    int expect = 4;
+	int expect2 = 4;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual;
+	struct Node actual2;
+	stack_pop(&actual);
+	stack_pop(&actual2);
+
+	assert_type_eq(NODE_NUMBER, &actual);
+	assert_type_eq(NODE_NUMBER, &actual2);
+    assert_num_eq(expect, &actual);
+    assert_num_eq(expect2, &actual2);
+}
+
+static void test_index(){
+	char *input = "3 2 2 index";
+    int expect = 3;
+	int expect2 = 2;
+    int expect3 = 3;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual;
+	struct Node actual2;
+	struct Node actual3;
+	stack_pop(&actual);
+	stack_pop(&actual2);
+	stack_pop(&actual3);
+
+	assert_type_eq(NODE_NUMBER, &actual);
+	assert_type_eq(NODE_NUMBER, &actual2);
+	assert_type_eq(NODE_NUMBER, &actual3);
+    assert_num_eq(expect, &actual);
+    assert_num_eq(expect2, &actual2);
+    assert_num_eq(expect3, &actual3);
+}
+
+static void test_roll(){
+	char *input = "1 2 3 4 5 6 7 4 3 roll";
+    int expect[7] = {4,7,6,5,3,2,1};
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual[7];
+	int i;
+	for(i =0 ; i<7;i++){
+		stack_pop(&actual[i]);
+	}
+
+	for(i=0; i<7;i++) {
+		assert_type_eq(NODE_NUMBER, &actual[i]);
+    	assert_num_eq(expect[i], &actual[i]);
+	}
+}
+
+static void test_exec(){
+	char *input = "{ 1 } exec";
+    int expect = 1;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual;
+	stack_pop(&actual);
+
+	assert_type_eq(NODE_NUMBER, &actual);
+    assert_num_eq(expect, &actual);
+}
+
+static void test_if(){
+	char *input = "1 { 1 2 add } if";
+    int expect = 3;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual;
+	stack_pop(&actual);
+
+	assert_type_eq(NODE_NUMBER, &actual);
+    assert_num_eq(expect, &actual);
+}
+
+static void test_ifelse(){
+	char *input = "0 { 1 2 add } { 2 2 add} ifelse";
+    int expect = 4;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual;
+	stack_pop(&actual);
+
+	assert_type_eq(NODE_NUMBER, &actual);
+    assert_num_eq(expect, &actual);
+}
+
+static void test_repeat(){
+	char *input = "1 3 { 2 add } repeat";
+    int expect = 7;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual;
+	stack_pop(&actual);
+
+	assert_type_eq(NODE_NUMBER, &actual);
+    assert_num_eq(expect, &actual);
+}
+
+static void test_while(){
+	char *input = "5  { dup 10 lt } { 3 add } while";
+    int expect = 11;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual;
+	stack_pop(&actual);
+	assert_type_eq(NODE_NUMBER, &actual);
+    assert_num_eq(expect, &actual);
+}
+
+
+static void unit_tests(){		
 	test_eval_num_one();
 	test_eval_num_two();
 	test_eval_add();
@@ -417,5 +846,51 @@ int main() {
 	test_compile_nest();
 	test_executable_array();
 	test_executable_array_nest();
+	test_eq();
+	test_neq();
+	test_gt();
+	test_ge();
+	test_lt();
+	test_le();
+	test_pop();
+	test_exch();
+	test_dup();
+	test_index();
+	test_roll();
+	test_exec();
+	test_if();
+	test_ifelse();
+	test_repeat();
+	test_while();
+}
+
+
+static void test_file(FILE* input_fp){
+    int expect = 11;
+	//input_fp = "5 6 add"
+    cl_getc_set_fp(input_fp);
+    eval();
+
+	struct Node actual;
+	stack_pop(&actual);
+	assert_type_eq(NODE_NUMBER, &actual);
+    assert_num_eq(expect, &actual);
+}
+
+int main(int argc, char *argv[]) {
+	FILE *fp = NULL;
+	if(argc > 1){
+		char *file_name = argv[1];
+		if( (fp = fopen(file_name, "r") ) == NULL){
+			printf("ERROR\n");
+		}
+	}
+	register_primitives();
+	unit_tests();
+	if(fp !=NULL){
+		test_file(fp);
+		fclose(fp);
+	}
 	return 0;
 }
+

@@ -49,6 +49,7 @@ struct NodeArray {
 
 int cl_getc();
 void cl_getc_set_src(char* str);
+void cl_getc_set_fp(FILE* input_fp);
 void stack_init();
 void stack_push(struct Node *node);
 int stack_pop(struct Node *out_node);
@@ -58,6 +59,7 @@ void dict_put(char* key, struct Node *node);
 int dict_get(char* key, struct Node *out_node);
 void dict_print_all();
 int streq(char *s1, char *s2);
+void eval();
 
 void assert_lname_eq(char *expect, struct Node *actual);
 void assert_num_eq(int expect, struct Node *actual);
