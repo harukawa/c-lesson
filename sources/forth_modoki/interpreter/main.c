@@ -15,6 +15,5 @@ int main(int argc, char *argv[]) {
 		stack_print_all();
 		fclose(fp);
 	}
-	unit_tests();
 }
 

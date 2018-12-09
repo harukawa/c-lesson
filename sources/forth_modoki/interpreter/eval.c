@@ -947,7 +947,6 @@ void unit_tests(){
 
 static void test_file(FILE* input_fp){
     int expect = 11;
-	//input_fp = "5 6 add"
     cl_getc_set_fp(input_fp);
     eval();
 
