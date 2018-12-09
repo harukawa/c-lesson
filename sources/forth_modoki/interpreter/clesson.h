@@ -54,12 +54,14 @@ void stack_init();
 void stack_push(struct Node *node);
 int stack_pop(struct Node *out_node);
 void stack_check(struct Node *out_node, int n);
+void stack_print_all();
 int parse_one(int prev_ch, struct Token *out_token);
 
 void dict_put(char* key, struct Node *node);
 int dict_get(char* key, struct Node *out_node);
 void dict_print_all();
 int streq(char *s1, char *s2);
+void register_primitives();
 void eval();
 
 void assert_lname_eq(char *expect, struct Node *actual);

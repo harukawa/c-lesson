@@ -48,6 +48,15 @@ void stack_print_all() {
 			case NODE_LITERAL_NAME:
 				printf("LITERAL_NAME: %s\n", node.u.name);
 				break;
+			case NODE_EXECUTABLE_NAME:
+				printf("EXECUTABLE_NAME: %s\n", node.u.name);
+				break;
+			case NODE_EXECUTABLE_ARRAY:
+				printf("EXECUTABLE_ARRAY: %s\n", node.u.name);
+				break;
+			case NODE_C_FUNC:
+				printf("C_FUNC: %s\n", node.u.name);
+				break;
 			default:
 				printf("Unknown type %d\n", node.ntype);
 				break;

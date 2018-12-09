@@ -25,8 +25,7 @@ static void def_op() {
 	struct Node def_node;
 	int val;
 	char* literal_name;
-	stack_pop(&node);
-	def_node = node;
+	stack_pop(&def_node);
 	stack_pop(&node);
 	literal_name = node.u.name;
 	dict_put(literal_name, &def_node);
@@ -233,11 +232,10 @@ static void while_op() {
 	}
 }
 
-static void compile_exec_array(struct Node *out_node) {
-	int ch = EOF, count = 0;
+static void compile_exec_array(struct Node *out_node, int prev_ch) {
+	int ch = prev_ch, count = 0;
 	struct Token token = {UNKNOWN, {0} };
 	struct Node node[MAX_NAME_OP_NUMBERS];
-
     do {
         ch = parse_one(ch, &token);
         switch(token.ltype) {
@@ -247,16 +245,17 @@ static void compile_exec_array(struct Node *out_node) {
 				count++;
                 break;
             case OPEN_CURLY:
-				compile_exec_array(&node[count]);
+				compile_exec_array(&node[count], ch);
+				count++;
+				ch = parse_one('}', &token);
+                break;
+            case LITERAL_NAME:
+				node[count].ntype = NODE_LITERAL_NAME;
+				node[count].u.name = token.u.name;
 				count++;
                 break;
             case EXECUTABLE_NAME:
 				node[count].ntype = NODE_EXECUTABLE_NAME;
-				node[count].u.name = token.u.name;
-				count++;
-                break;
-            case LITERAL_NAME:
-				node[count].ntype = NODE_LITERAL_NAME;
 				node[count].u.name = token.u.name;
 				count++;
                 break;
@@ -288,12 +287,16 @@ void eval_exec_array(struct NodeArray *byte_codes) {
 				if(dict_get(byte_codes->nodes[i].u.name, &node)) {
 					if(node.ntype == NODE_C_FUNC) {
 						node.u.cfunc();
-					} else if(node.ntype == NODE_EXECUTABLE_ARRAY) {
-						eval_exec_array(node.u.byte_codes);					
 					} else {
 						stack_push(&node);
 					}
+				} else {
+						stack_push(&byte_codes->nodes[i]);
 				}
+				break;
+
+			case NODE_EXECUTABLE_ARRAY:
+				stack_push(&byte_codes->nodes[i]);
 				break;
 			default:
 				break;
@@ -319,8 +322,9 @@ void eval() {
             case SPACE:
                 break;
             case OPEN_CURLY:
-				compile_exec_array(&node);
+				compile_exec_array(&node, ch);
 				stack_push(&node);
+				ch = '}';
                 break;
             case CLOSE_CURLY:
                 break;
@@ -354,7 +358,7 @@ static void register_one_primitive(char *input_key, void (*cfunc)(void)) {
 	dict_put(input_key, &node);
 }
 
-static void register_primitives(){
+void register_primitives(){
 	register_one_primitive("def", def_op);
 	register_one_primitive("add", add_op);
 	register_one_primitive("sub", sub_op);
@@ -868,7 +872,7 @@ static void test_file(FILE* input_fp){
 	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
 }
-
+#if 0
 int main(int argc, char *argv[]) {
 	FILE *fp = NULL;
 	if(argc > 1){
@@ -885,3 +889,4 @@ int main(int argc, char *argv[]) {
 	}
 	return 0;
 }
+#endif

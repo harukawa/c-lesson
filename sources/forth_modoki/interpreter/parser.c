@@ -8,7 +8,7 @@ int _isdigit(int c){
 }
 
 int _isExecutable(int c){
-	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z');
+	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
 }
 
 #define NAME_SIZE 256
@@ -59,7 +59,6 @@ int parse_one(int prev_ch, struct Token *out_token) {
 	}else if(single_ch == '/'){
 		char *str;
 		char tmp[NAME_SIZE];
-		//str = malloc(sizeof(char) * NAME_SIZE);
 		int i = 0,mem_size;
 		while(_isExecutable(single_ch = cl_getc())){
 			tmp[i] = (char)single_ch;
