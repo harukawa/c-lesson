@@ -287,6 +287,8 @@ void eval_exec_array(struct NodeArray *byte_codes) {
 				if(dict_get(byte_codes->nodes[i].u.name, &node)) {
 					if(node.ntype == NODE_C_FUNC) {
 						node.u.cfunc();
+					} else if(node.ntype == NODE_EXECUTABLE_ARRAY) {
+						eval_exec_array(node.u.byte_codes);					
 					} else {
 						stack_push(&node);
 					}

@@ -1,0 +1,14 @@
+/factorial {
+  dup
+  {dup 1 gt} 
+  {
+    1 sub
+    exch
+    1 index
+    mul
+    exch
+  } while
+  pop
+} def
+
+4 factorial

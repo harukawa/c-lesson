@@ -1,0 +1,14 @@
+/sum { dup 
+ dup mul exch
+ { dup 1 gt }
+ { 1 sub
+  exch
+  2 index
+  dup mul
+  add
+  exch
+} while
+ pop
+} def
+
+5 sum

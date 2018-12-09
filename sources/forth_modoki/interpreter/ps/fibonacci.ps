@@ -1,0 +1,17 @@
+/fibonacci {
+   dup 0 eq { } {
+   dup 1 eq { } {
+   /two 0 def
+   /one 1 def
+   2 sub
+   { 
+    one two add
+    /two one def
+    /one exch def
+   }
+   repeat
+  one two add
+  } ifelse } ifelse}  
+}def
+
+3 fibonacci
