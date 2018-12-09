@@ -830,8 +830,85 @@ static void test_while(){
     assert_num_eq(expect, &actual);
 }
 
+static void test_while_curly(){
+	char *input = "5{dup 10 lt}{3 add}while";
+    int expect = 11;
+    cl_getc_set_src(input);
+    eval();
 
-static void unit_tests(){		
+	struct Node actual;
+	stack_pop(&actual);
+	assert_type_eq(NODE_NUMBER, &actual);
+    assert_num_eq(expect, &actual);
+}
+
+static void test_repeat2(){
+	char *input = "{3 {123} repeat} exec";
+    int expect = 123;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual[3];
+	stack_pop(&actual[0]);
+	stack_pop(&actual[1]);
+	stack_pop(&actual[2]);
+
+	assert_type_eq(NODE_NUMBER, &actual[0]);
+    assert_num_eq(expect, &actual[0]);
+	assert_type_eq(NODE_NUMBER, &actual[1]);
+    assert_num_eq(expect, &actual[1]);
+	assert_type_eq(NODE_NUMBER, &actual[2]);
+    assert_num_eq(expect, &actual[2]);
+}
+
+static void test_ifelse2(){
+	char *input = "1 {2} {3} ifelse 4";
+    int expect = 4, expect2 = 2;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual;
+	struct Node actual2;
+	stack_pop(&actual);
+	stack_pop(&actual2);
+
+	assert_type_eq(NODE_NUMBER, &actual);
+    assert_num_eq(expect, &actual);
+	assert_type_eq(NODE_NUMBER, &actual2);
+    assert_num_eq(expect2, &actual2);
+}
+
+static void test_ifelse3(){
+	char *input = "/a { {345} ifelse} def 1 {123} a";
+    int expect = 123;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual;
+	stack_pop(&actual);
+
+	assert_type_eq(NODE_NUMBER, &actual);
+    assert_num_eq(expect, &actual);
+}
+
+static void test_def2(){
+	char *input = "/f { {1 3 add} exec 3} def f";
+    int expect = 4, expect2 = 3;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual;
+	struct Node actual2;
+	stack_pop(&actual2);
+	stack_pop(&actual);
+
+	assert_type_eq(NODE_NUMBER, &actual);
+    assert_num_eq(expect, &actual);
+	assert_type_eq(NODE_NUMBER, &actual2);
+    assert_num_eq(expect2, &actual2);
+}
+
+void unit_tests(){		
 	test_eval_num_one();
 	test_eval_num_two();
 	test_eval_add();
@@ -860,6 +937,11 @@ static void unit_tests(){
 	test_ifelse();
 	test_repeat();
 	test_while();
+	test_while_curly();
+	test_repeat2();
+	test_ifelse2();
+	test_ifelse3();
+	test_def2();
 }
 
 
