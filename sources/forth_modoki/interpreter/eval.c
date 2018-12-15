@@ -189,7 +189,7 @@ static void if_op() {
 		eval_exec_array(proc1.u.byte_codes);
 	}
 }
-
+ 
 static void ifelse_op() {
 	struct Node bool1;
 	struct Node proc1;
@@ -232,6 +232,8 @@ static void while_op() {
 	}
 }
 
+
+
 static void compile_exec_array(struct Node *out_node, int prev_ch) {
 	int ch = prev_ch, count = 0;
 	struct Token token = {UNKNOWN, {0} };
@@ -271,42 +273,81 @@ static void compile_exec_array(struct Node *out_node, int prev_ch) {
 	out_node->u.byte_codes = node_array;
 }
 
+
 void eval_exec_array(struct NodeArray *byte_codes) {
-	struct Node node = {NODE_UNKNOWN, {0} };
-	for(int i = 0; i < byte_codes->len; i++) {
-		switch(byte_codes->nodes[i].ntype) {
-			case NODE_NUMBER:
-				stack_push(&byte_codes->nodes[i]);
-				break;
+	struct Node node;
+	struct Continuation cont;
+	cont.exec_array = byte_codes;
+	cont.pc = 0;
+	int i;
+	
+	co_push(&cont);
 
-			case NODE_LITERAL_NAME:
-				stack_push(&byte_codes->nodes[i]);
-				break;
+	while(co_pop(&cont)) {
+		for(i = cont.pc; i < cont.exec_array->len; i++){
+			switch(cont.exec_array->nodes[i].ntype) {
+				case NODE_NUMBER:
+					stack_push(&cont.exec_array->nodes[i]);
+					break;
 
-			case NODE_EXECUTABLE_NAME:
-				if(dict_get(byte_codes->nodes[i].u.name, &node)) {
-					if(node.ntype == NODE_C_FUNC) {
-						node.u.cfunc();
-					} else if(node.ntype == NODE_EXECUTABLE_ARRAY) {
-						eval_exec_array(node.u.byte_codes);					
+				case NODE_LITERAL_NAME:
+					stack_push(&cont.exec_array->nodes[i]);
+					break;
+
+				case NODE_EXECUTABLE_NAME:
+					if(dict_get(cont.exec_array->nodes[i].u.name, &node)) {
+						if(node.ntype == NODE_C_FUNC) {
+							if( streq(node.u.name, "ifelse") ){
+								struct Node proc1,proc2,bool1;
+								stack_pop(&proc2);
+								stack_pop(&proc1);
+								stack_pop(&bool1);
+								cont.pc = ++i;
+								i = cont.exec_array->len;
+								co_push(&cont);
+								if(bool1.u.number) {
+									cont.exec_array = proc1.u.byte_codes;
+								} else {
+									cont.exec_array = proc2.u.byte_codes;
+								}
+								cont.pc = 0;
+								co_push(&cont);
+							} else if(streq(node.u.name, "exec")) {
+								struct Node exec;
+								stack_pop(&exec);
+								cont.pc = ++i;
+								i = cont.exec_array->len;
+								co_push(&cont);
+								cont.exec_array = exec.u.byte_codes;
+								cont.pc = 0;
+								co_push(&cont);
+							} else {
+								node.u.cfunc();
+							}
+						} else if(node.ntype == NODE_EXECUTABLE_ARRAY) {
+							cont.pc = ++i;
+							i = cont.exec_array->len;
+							co_push(&cont);
+							cont.exec_array = node.u.byte_codes;
+							cont.pc = 0;
+							co_push(&cont);
+						} else {
+							stack_push(&node);
+						}
 					} else {
-						stack_push(&node);
+							stack_push(&cont.exec_array->nodes[i]);
 					}
-				} else {
-						stack_push(&byte_codes->nodes[i]);
-				}
-				break;
+					break;
 
-			case NODE_EXECUTABLE_ARRAY:
-				stack_push(&byte_codes->nodes[i]);
-				break;
-			default:
-				break;
+				case NODE_EXECUTABLE_ARRAY:
+					stack_push(&byte_codes->nodes[i]);
+					break;
+				default:
+					break;
+			}
 		}
 	}
 }
-
-
 
 void eval() {
 	int ch = EOF;
@@ -908,6 +949,40 @@ static void test_def2(){
     assert_num_eq(expect2, &actual2);
 }
 
+static void test_cont_exec(){
+	char *input = "{ 1 { { 3 } exec } exec } exec";
+    int expect = 1, expect2 = 3;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual;
+	struct Node actual2;
+	stack_pop(&actual2);
+	stack_pop(&actual);
+
+	assert_type_eq(NODE_NUMBER, &actual);
+    assert_num_eq(expect, &actual);
+	assert_type_eq(NODE_NUMBER, &actual2);
+    assert_num_eq(expect2, &actual2);
+}
+
+static void test_cont_iflese(){
+	char *input = "{ 1 { 1 3 } { 5 6 } ifelse } exec";
+    int expect = 1, expect2 = 3;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual;
+	struct Node actual2;
+	stack_pop(&actual2);
+	stack_pop(&actual);
+
+	assert_type_eq(NODE_NUMBER, &actual);
+    assert_num_eq(expect, &actual);
+	assert_type_eq(NODE_NUMBER, &actual2);
+    assert_num_eq(expect2, &actual2);
+}
+
 void unit_tests(){		
 	test_eval_num_one();
 	test_eval_num_two();
@@ -942,7 +1017,9 @@ void unit_tests(){
 	test_ifelse2();
 	test_ifelse3();
 	test_def2();
-}
+	test_cont_exec();
+	test_cont_exec();
+ }
 
 
 static void test_file(FILE* input_fp){
@@ -955,7 +1032,7 @@ static void test_file(FILE* input_fp){
 	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
 }
-#if 0
+
 int main(int argc, char *argv[]) {
 	FILE *fp = NULL;
 	if(argc > 1){
@@ -972,4 +1049,4 @@ int main(int argc, char *argv[]) {
 	}
 	return 0;
 }
-#endif
+

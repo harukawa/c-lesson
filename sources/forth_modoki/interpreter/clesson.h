@@ -47,9 +47,16 @@ struct NodeArray {
 	struct Node nodes[0];
 };
 
+struct Continuation {
+	struct NodeArray* exec_array;
+	int pc;
+};
+
+
 int cl_getc();
 void cl_getc_set_src(char* str);
 void cl_getc_set_fp(FILE* input_fp);
+
 void stack_init();
 void stack_push(struct Node *node);
 int stack_pop(struct Node *out_node);
@@ -68,3 +75,6 @@ void test_units();
 void assert_lname_eq(char *expect, struct Node *actual);
 void assert_num_eq(int expect, struct Node *actual);
 void assert_type_eq(int expect, struct Node *actual);
+
+void co_push(struct Continuation *cont);
+int co_pop(struct Continuation *cont);

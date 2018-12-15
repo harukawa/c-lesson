@@ -1,6 +1,6 @@
 # Makefile
-eval: cl_getc.o parser.o stack.o eval.o dict.o
-	cc -o eval cl_getc.o parser.o stack.o eval.o dict.o
+main: cl_getc.o parser.o stack.o eval.o dict.o main.o continuation.o
+	cc -o main cl_getc.o parser.o stack.o eval.o dict.o main.o continuation.o
 cl_getc.o: cl_getc.c
 	cc -c cl_getc.c
 parser.o: parser.c
@@ -11,6 +11,12 @@ eval.o: eval.c
 	cc -c eval.c
 dict.o: dict.c
 	cc -c dict.c
+main.o: main.c
+	cc -c main.c
+
+continuation.o: continuation.c
+	cc -c continuation.c
+
 clean:
-	rm -f cl_getc.o parser.o stack.o eval.o dict.o
+	rm -f cl_getc.o parser.o stack.o eval.o dict.o main.o
 
