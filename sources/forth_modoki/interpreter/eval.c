@@ -246,10 +246,7 @@ static void emit_elem(struct Emitter *emit, struct Node *node) {
 	emit->pos++;
 }
 
-static int ifelse_compile(struct Node *nodes, int pos) {
-	struct Emitter emit;
-	emit.pos = pos;
-	emit.nodes = nodes;
+static int ifelse_compile(struct Emitter *emit) {
 	struct Node number, name,exec;
 	number.ntype = NODE_NUMBER;
 	name.ntype = NODE_EXECUTABLE_NAME;
@@ -257,31 +254,31 @@ static int ifelse_compile(struct Node *nodes, int pos) {
 
 
 	number.u.number = 3;
-	emit_elem(&emit, &number); // 3
+	emit_elem(emit, &number); // 3
 	number.u.number = 2;
-	emit_elem(&emit, &number); // 2
+	emit_elem(emit, &number); // 2
 	name.u.name = "roll";
-	emit_elem(&emit, &name); // roll
+	emit_elem(emit, &name); // roll
 	number.u.number = 5;
-	emit_elem(&emit, &number); // 5
+	emit_elem(emit, &number); // 5
 	exec.u.number = OP_JMP_NOT_IF;
-	emit_elem(&emit, &exec); // jmp_not_if
+	emit_elem(emit, &exec); // jmp_not_if
 	name.u.name = "pop";
-	emit_elem(&emit, &name); // pop
+	emit_elem(emit, &name); // pop
 	exec.u.number = OP_EXEC;
-	emit_elem(&emit, &exec); // exec
+	emit_elem(emit, &exec); // exec
 	number.u.number = 4;
-	emit_elem(&emit, &number); // 4
+	emit_elem(emit, &number); // 4
 	exec.u.number = OP_JMP;
-	emit_elem(&emit, &exec); // jmp
+	emit_elem(emit, &exec); // jmp
 	name.u.name = "exch";
-	emit_elem(&emit, &name); // exch
+	emit_elem(emit, &name); // exch
 	name.u.name = "pop";
-	emit_elem(&emit, &name); // pop
+	emit_elem(emit, &name); // pop
 	exec.u.number = OP_EXEC;
-	emit_elem(&emit, &exec); // exec
+	emit_elem(emit, &exec); // exec
 
-	return emit.pos;
+	return emit->pos;
 }
 
 static void compile_exec_array(struct Node *out_node, int prev_ch) {
@@ -310,7 +307,10 @@ static void compile_exec_array(struct Node *out_node, int prev_ch) {
             case EXECUTABLE_NAME:
 				if(compile_dict_get(token.u.name, &dict)) {
 					if(dict.ntype == NODE_C_FUNC) {
-						count = dict.u.compile_func(&node,count);
+						struct Emitter emit;
+						emit.pos = count;
+						emit.nodes = node;
+						count = dict.u.compile_func(&emit);
 					} else {
 						node[count].ntype = dict.ntype; // exec,jmp,jmp_not_if
 						node[count].u.number = dict.u.number;
@@ -462,7 +462,7 @@ static void register_one_primitive(char *input_key, void (*cfunc)(void)) {
 	dict_put(input_key, &node);
 }
 
-static void register_one_compile_primitive(char *input_key, int (*compile_func)(struct Node *nodes, int pos) ) {
+static void register_one_compile_primitive(char *input_key, int (*compile_func)(struct Emitter *emit) ) {
 	struct Node node ={NODE_C_FUNC, {.compile_func = compile_func}};
 	compile_dict_put(input_key, &node);
 }

@@ -43,7 +43,7 @@ struct Node {
 		int number;
 		char *name;
 		void (*cfunc)();
-		int (*compile_func)(struct Node *nodes ,int pos);
+		int (*compile_func)(struct Emitter *emit);
 		struct NodeArray *byte_codes;
 	}u;
 };
