@@ -18,5 +18,5 @@ continuation.o: continuation.c
 	cc -c continuation.c
 
 clean:
-	rm -f cl_getc.o parser.o stack.o eval.o dict.o main.o
+	rm -f cl_getc.o parser.o stack.o eval.o dict.o main.o continuation.o
 

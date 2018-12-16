@@ -27,10 +27,15 @@ enum NodeType {
 	NODE_EXECUTABLE_NAME,
 	NODE_EXECUTABLE_ARRAY,
 	NODE_UNKNOWN,
-	NODE_C_FUNC
+	NODE_C_FUNC,
+	NODE_EXEC_PRIMITIVE
 };
 
-
+enum ExecWord {
+	OP_EXEC,
+	OP_JMP,
+	OP_JMP_NOT_IF
+};
 
 struct Node {
 	enum NodeType ntype;
@@ -38,6 +43,7 @@ struct Node {
 		int number;
 		char *name;
 		void (*cfunc)();
+		int (*compile_func)(struct Node *nodes ,int pos);
 		struct NodeArray *byte_codes;
 	}u;
 };
@@ -66,6 +72,8 @@ int parse_one(int prev_ch, struct Token *out_token);
 
 void dict_put(char* key, struct Node *node);
 int dict_get(char* key, struct Node *out_node);
+void compile_dict_put(char* key, struct Node *node);
+int compile_dict_get(char* key, struct Node *out_node);
 void dict_print_all();
 int streq(char *s1, char *s2);
 void register_primitives();

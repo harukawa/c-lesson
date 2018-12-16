@@ -3,6 +3,10 @@
 
 #define MAX_NAME_OP_NUMBERS 256
 
+struct Emitter {
+	struct Node *nodes;
+	int pos;
+};
 
 int streq(char *s1, char *s2) {
 	if(strcmp(s1,s2)==0) {
@@ -177,7 +181,7 @@ static void roll_op() {
 static void exec_op() {
 	struct Node proc;
 	stack_pop(&proc);
-	eval_exec_array(proc.u.byte_codes);					
+	eval_exec_array(proc.u.byte_codes);
 }
 
 static void if_op() {
@@ -232,12 +236,59 @@ static void while_op() {
 	}
 }
 
+static void emit_elem(struct Emitter *emit, struct Node *node) {
+	emit->nodes[emit->pos].ntype = node->ntype;
+	if(node->ntype == EXECUTABLE_NAME) {
+		emit->nodes[emit->pos].u.name = node->u.name;
+	} else {
+		emit->nodes[emit->pos].u.number = node->u.number;
+	}
+	emit->pos++;
+}
 
+static int ifelse_compile(struct Node *nodes, int pos) {
+	struct Emitter emit;
+	emit.pos = pos;
+	emit.nodes = nodes;
+	struct Node number, name,exec;
+	number.ntype = NODE_NUMBER;
+	name.ntype = NODE_EXECUTABLE_NAME;
+	exec.ntype = NODE_EXEC_PRIMITIVE;
+
+
+	number.u.number = 3;
+	emit_elem(&emit, &number); // 3
+	number.u.number = 2;
+	emit_elem(&emit, &number); // 2
+	name.u.name = "roll";
+	emit_elem(&emit, &name); // roll
+	number.u.number = 5;
+	emit_elem(&emit, &number); // 5
+	exec.u.number = OP_JMP_NOT_IF;
+	emit_elem(&emit, &exec); // jmp_not_if
+	name.u.name = "pop";
+	emit_elem(&emit, &name); // pop
+	exec.u.number = OP_EXEC;
+	emit_elem(&emit, &exec); // exec
+	number.u.number = 4;
+	emit_elem(&emit, &number); // 4
+	exec.u.number = OP_JMP;
+	emit_elem(&emit, &exec); // jmp
+	name.u.name = "exch";
+	emit_elem(&emit, &name); // exch
+	name.u.name = "pop";
+	emit_elem(&emit, &name); // pop
+	exec.u.number = OP_EXEC;
+	emit_elem(&emit, &exec); // exec
+
+	return emit.pos;
+}
 
 static void compile_exec_array(struct Node *out_node, int prev_ch) {
 	int ch = prev_ch, count = 0;
 	struct Token token = {UNKNOWN, {0} };
 	struct Node node[MAX_NAME_OP_NUMBERS];
+	struct Node dict;
     do {
         ch = parse_one(ch, &token);
         switch(token.ltype) {
@@ -257,9 +308,19 @@ static void compile_exec_array(struct Node *out_node, int prev_ch) {
 				count++;
                 break;
             case EXECUTABLE_NAME:
-				node[count].ntype = NODE_EXECUTABLE_NAME;
-				node[count].u.name = token.u.name;
-				count++;
+				if(compile_dict_get(token.u.name, &dict)) {
+					if(dict.ntype == NODE_C_FUNC) {
+						count = dict.u.compile_func(&node,count);
+					} else {
+						node[count].ntype = dict.ntype; // exec,jmp,jmp_not_if
+						node[count].u.number = dict.u.number;
+						count++;
+					}
+				} else {
+					node[count].ntype = NODE_EXECUTABLE_NAME;
+					node[count].u.name = token.u.name;
+					count++;
+				}
                 break;
             default:
                 break;
@@ -294,36 +355,36 @@ void eval_exec_array(struct NodeArray *byte_codes) {
 					stack_push(&cont.exec_array->nodes[i]);
 					break;
 
+				case NODE_EXEC_PRIMITIVE:
+					if(cont.exec_array->nodes[i].u.number == OP_JMP) {
+						struct Node num;
+						stack_pop(&num);
+						i += num.u.number;
+						if(i < 0){ i = 0;}
+					}else if(cont.exec_array->nodes[i].u.number == OP_JMP_NOT_IF) {
+						struct Node num, num2;
+						stack_pop(&num);
+						stack_pop(&num2);
+						if(num2.u.number == 0){
+							i += num.u.number;
+							if(i < 0){ i = 0;}
+						}
+					} else if(cont.exec_array->nodes[i].u.number == OP_EXEC) {
+						struct Node exec;
+						stack_pop(&exec);
+						cont.pc = i + 1;
+						i = cont.exec_array->len;
+						co_push(&cont);
+						cont.exec_array = exec.u.byte_codes;
+						cont.pc = 0;
+						co_push(&cont);
+					}
+					break;
+
 				case NODE_EXECUTABLE_NAME:
 					if(dict_get(cont.exec_array->nodes[i].u.name, &node)) {
 						if(node.ntype == NODE_C_FUNC) {
-							if( streq(node.u.name, "ifelse") ){
-								struct Node proc1,proc2,bool1;
-								stack_pop(&proc2);
-								stack_pop(&proc1);
-								stack_pop(&bool1);
-								cont.pc = ++i;
-								i = cont.exec_array->len;
-								co_push(&cont);
-								if(bool1.u.number) {
-									cont.exec_array = proc1.u.byte_codes;
-								} else {
-									cont.exec_array = proc2.u.byte_codes;
-								}
-								cont.pc = 0;
-								co_push(&cont);
-							} else if(streq(node.u.name, "exec")) {
-								struct Node exec;
-								stack_pop(&exec);
-								cont.pc = ++i;
-								i = cont.exec_array->len;
-								co_push(&cont);
-								cont.exec_array = exec.u.byte_codes;
-								cont.pc = 0;
-								co_push(&cont);
-							} else {
-								node.u.cfunc();
-							}
+							node.u.cfunc();
 						} else if(node.ntype == NODE_EXECUTABLE_ARRAY) {
 							cont.pc = ++i;
 							i = cont.exec_array->len;
@@ -401,6 +462,16 @@ static void register_one_primitive(char *input_key, void (*cfunc)(void)) {
 	dict_put(input_key, &node);
 }
 
+static void register_one_compile_primitive(char *input_key, int (*compile_func)(struct Node *nodes, int pos) ) {
+	struct Node node ={NODE_C_FUNC, {.compile_func = compile_func}};
+	compile_dict_put(input_key, &node);
+}
+
+static void register_one_compile_primitive_word(char *input_key, enum ExecWord word) {
+	struct Node node = { NODE_EXEC_PRIMITIVE, { word } };
+	compile_dict_put(input_key, &node); 
+}
+
 void register_primitives(){
 	register_one_primitive("def", def_op);
 	register_one_primitive("add", add_op);
@@ -423,6 +494,12 @@ void register_primitives(){
 	register_one_primitive("ifelse", ifelse_op);
 	register_one_primitive("repeat", repeat_op);
 	register_one_primitive("while", while_op);
+
+	register_one_compile_primitive("ifelse", ifelse_compile);
+
+	register_one_compile_primitive_word("exec", OP_EXEC);
+	register_one_compile_primitive_word("jmp", OP_JMP);
+	register_one_compile_primitive_word("jmp_not_if", OP_JMP_NOT_IF);
 }
 
 static void test_eval_num_one() {
@@ -950,11 +1027,12 @@ static void test_def2(){
 }
 
 static void test_cont_exec(){
-	char *input = "{ 1 { { 3 } exec } exec } exec";
-    int expect = 1, expect2 = 3;
+	char *input = "{ 11 { { 3 } exec } exec } exec";
+    int expect = 11, expect2 = 3;
     cl_getc_set_src(input);
+	printf("start\n");
     eval();
-
+	printf("end\n");
 	struct Node actual;
 	struct Node actual2;
 	stack_pop(&actual2);
@@ -966,7 +1044,7 @@ static void test_cont_exec(){
     assert_num_eq(expect2, &actual2);
 }
 
-static void test_cont_iflese(){
+static void test_cont_ifelse(){
 	char *input = "{ 1 { 1 3 } { 5 6 } ifelse } exec";
     int expect = 1, expect2 = 3;
     cl_getc_set_src(input);
@@ -983,8 +1061,42 @@ static void test_cont_iflese(){
     assert_num_eq(expect2, &actual2);
 }
 
+static void test_cont_jmp(){
+	char *input = "{3 1 jmp 2 4 } exec";
+    int expect = 3, expect2 = 4;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual;
+	struct Node actual2;
+	stack_pop(&actual2);
+	stack_pop(&actual);
+
+	assert_type_eq(NODE_NUMBER, &actual);
+    assert_num_eq(expect, &actual);
+	assert_type_eq(NODE_NUMBER, &actual2);
+    assert_num_eq(expect2, &actual2);
+}
+
+static void test_cont_jmp_not_if(){
+	char *input = "{3 0 1 jmp_not_if 2 4 } exec";
+    int expect = 3, expect2 = 4;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual;
+	struct Node actual2;
+	stack_pop(&actual2);
+	stack_pop(&actual);
+
+	assert_type_eq(NODE_NUMBER, &actual);
+    assert_num_eq(expect, &actual);
+	assert_type_eq(NODE_NUMBER, &actual2);
+    assert_num_eq(expect2, &actual2);
+}
+
 void unit_tests(){		
-	test_eval_num_one();
+/*	test_eval_num_one();
 	test_eval_num_two();
 	test_eval_add();
 	test_eval_sub();
@@ -1017,10 +1129,11 @@ void unit_tests(){
 	test_ifelse2();
 	test_ifelse3();
 	test_def2();
-	test_cont_exec();
-	test_cont_exec();
- }
-
+*/	test_cont_exec();
+/*	test_cont_ifelse();
+	test_cont_jmp();
+	test_cont_jmp_not_if();
+*/ }
 
 static void test_file(FILE* input_fp){
     int expect = 11;
