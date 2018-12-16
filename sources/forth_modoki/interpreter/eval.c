@@ -950,7 +950,7 @@ static void test_def2(){
 }
 
 static void test_cont_exec(){
-	char *input = "{ 1 { { 3 } exec } exec } exec";
+	char *input = "{ 1 { {  { 3 } exec  } exec } exec } exec";
     int expect = 1, expect2 = 3;
     cl_getc_set_src(input);
     eval();
