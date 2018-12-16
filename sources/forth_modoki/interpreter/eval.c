@@ -340,7 +340,7 @@ void eval_exec_array(struct NodeArray *byte_codes) {
 					break;
 
 				case NODE_EXECUTABLE_ARRAY:
-					stack_push(&byte_codes->nodes[i]);
+					stack_push(&cont.exec_array->nodes[i]);
 					break;
 				default:
 					break;
