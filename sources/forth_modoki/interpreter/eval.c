@@ -401,7 +401,7 @@ void eval_exec_array(struct NodeArray *byte_codes) {
 					break;
 
 				case NODE_EXECUTABLE_ARRAY:
-					stack_push(&byte_codes->nodes[i]);
+					stack_push(&cont.exec_array->nodes[i]);
 					break;
 				default:
 					break;
@@ -1030,9 +1030,7 @@ static void test_cont_exec(){
 	char *input = "{ 11 { { 3 } exec } exec } exec";
     int expect = 11, expect2 = 3;
     cl_getc_set_src(input);
-	printf("start\n");
     eval();
-	printf("end\n");
 	struct Node actual;
 	struct Node actual2;
 	stack_pop(&actual2);
@@ -1096,7 +1094,7 @@ static void test_cont_jmp_not_if(){
 }
 
 void unit_tests(){		
-/*	test_eval_num_one();
+	test_eval_num_one();
 	test_eval_num_two();
 	test_eval_add();
 	test_eval_sub();
@@ -1129,11 +1127,11 @@ void unit_tests(){
 	test_ifelse2();
 	test_ifelse3();
 	test_def2();
-*/	test_cont_exec();
-/*	test_cont_ifelse();
+	test_cont_exec();
+	test_cont_ifelse();
 	test_cont_jmp();
 	test_cont_jmp_not_if();
-*/ }
+ }
 
 static void test_file(FILE* input_fp){
     int expect = 11;
