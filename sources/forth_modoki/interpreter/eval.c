@@ -186,6 +186,12 @@ void eval() {
 
 }
 
+void assert_primitive(int word, struct Node *proc) {
+	struct Node node = proc->u.byte_codes->nodes[0];
+	assert(NODE_EXEC_PRIMITIVE == node.ntype);
+	assert(word == node.u.number);
+}
+
 static void test_eval_num_one() {
     char *input = "123";
     int expect = 123;
@@ -370,7 +376,6 @@ static void test_executable_array(){
 	struct Node actual ={UNKNOWN,{0}};
 	stack_pop(&actual);
 
-	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
 }
 
@@ -393,7 +398,6 @@ static void test_executable_array_nest(){
 	}
 
 	for(i=0;i<6;i++) {
-		assert_type_eq(NODE_NUMBER, &actual[i]);
     	assert_num_eq(expect[i], &actual[i]);
 	}
 }
@@ -408,7 +412,6 @@ static void test_eq(){
 	struct Node actual ={UNKNOWN,{0}};
 	stack_pop(&actual);
 
-	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
 }
 
@@ -421,7 +424,6 @@ static void test_neq(){
 	struct Node actual ={UNKNOWN,{0}};
 	stack_pop(&actual);
 
-	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
 }
 
@@ -434,7 +436,6 @@ static void test_gt(){
 	struct Node actual ={UNKNOWN,{0}};
 	stack_pop(&actual);
 
-	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
 }
 
@@ -447,7 +448,6 @@ static void test_ge(){
 	struct Node actual ={UNKNOWN,{0}};
 	stack_pop(&actual);
 
-	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
 }
 
@@ -460,7 +460,6 @@ static void test_lt(){
 	struct Node actual ={UNKNOWN,{0}};
 	stack_pop(&actual);
 
-	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
 }
 
@@ -487,7 +486,6 @@ static void test_pop(){
 	struct Node actual ={UNKNOWN,{0}};
 	stack_pop(&actual);
 
-	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
 }
 
@@ -503,8 +501,6 @@ static void test_exch(){
 	stack_pop(&actual);
 	stack_pop(&actual2);
 
-	assert_type_eq(NODE_NUMBER, &actual);
-	assert_type_eq(NODE_NUMBER, &actual2);
     assert_num_eq(expect, &actual);
     assert_num_eq(expect2, &actual2);
 }
@@ -521,8 +517,6 @@ static void test_dup(){
 	stack_pop(&actual);
 	stack_pop(&actual2);
 
-	assert_type_eq(NODE_NUMBER, &actual);
-	assert_type_eq(NODE_NUMBER, &actual2);
     assert_num_eq(expect, &actual);
     assert_num_eq(expect2, &actual2);
 }
@@ -542,9 +536,6 @@ static void test_index(){
 	stack_pop(&actual2);
 	stack_pop(&actual3);
 
-	assert_type_eq(NODE_NUMBER, &actual);
-	assert_type_eq(NODE_NUMBER, &actual2);
-	assert_type_eq(NODE_NUMBER, &actual3);
     assert_num_eq(expect, &actual);
     assert_num_eq(expect2, &actual2);
     assert_num_eq(expect3, &actual3);
@@ -563,7 +554,6 @@ static void test_roll(){
 	}
 
 	for(i=0; i<7;i++) {
-		assert_type_eq(NODE_NUMBER, &actual[i]);
     	assert_num_eq(expect[i], &actual[i]);
 	}
 }
@@ -577,7 +567,6 @@ static void test_exec(){
 	struct Node actual;
 	stack_pop(&actual);
 
-	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
 }
 
@@ -590,7 +579,6 @@ static void test_if(){
 	struct Node actual;
 	stack_pop(&actual);
 
-	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
 }
 
@@ -603,7 +591,6 @@ static void test_ifelse(){
 	struct Node actual;
 	stack_pop(&actual);
 
-	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
 }
 
@@ -616,7 +603,6 @@ static void test_repeat(){
 	struct Node actual;
 	stack_pop(&actual);
 
-	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
 }
 
@@ -628,7 +614,6 @@ static void test_while(){
 
 	struct Node actual;
 	stack_pop(&actual);
-	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
 }
 
@@ -640,7 +625,6 @@ static void test_while_curly(){
 
 	struct Node actual;
 	stack_pop(&actual);
-	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
 }
 
@@ -655,11 +639,8 @@ static void test_repeat2(){
 	stack_pop(&actual[1]);
 	stack_pop(&actual[2]);
 
-	assert_type_eq(NODE_NUMBER, &actual[0]);
     assert_num_eq(expect, &actual[0]);
-	assert_type_eq(NODE_NUMBER, &actual[1]);
     assert_num_eq(expect, &actual[1]);
-	assert_type_eq(NODE_NUMBER, &actual[2]);
     assert_num_eq(expect, &actual[2]);
 }
 
@@ -674,9 +655,7 @@ static void test_ifelse2(){
 	stack_pop(&actual);
 	stack_pop(&actual2);
 
-	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
-	assert_type_eq(NODE_NUMBER, &actual2);
     assert_num_eq(expect2, &actual2);
 }
 
@@ -689,7 +668,6 @@ static void test_ifelse3(){
 	struct Node actual;
 	stack_pop(&actual);
 
-	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
 }
 
@@ -704,9 +682,7 @@ static void test_def2(){
 	stack_pop(&actual2);
 	stack_pop(&actual);
 
-	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
-	assert_type_eq(NODE_NUMBER, &actual2);
     assert_num_eq(expect2, &actual2);
 }
 
@@ -720,9 +696,7 @@ static void test_cont_exec(){
 	stack_pop(&actual2);
 	stack_pop(&actual);
 
-	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
-	assert_type_eq(NODE_NUMBER, &actual2);
     assert_num_eq(expect2, &actual2);
 }
 
@@ -737,9 +711,7 @@ static void test_cont_ifelse(){
 	stack_pop(&actual2);
 	stack_pop(&actual);
 
-	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
-	assert_type_eq(NODE_NUMBER, &actual2);
     assert_num_eq(expect2, &actual2);
 }
 
@@ -754,9 +726,7 @@ static void test_cont_jmp(){
 	stack_pop(&actual2);
 	stack_pop(&actual);
 
-	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
-	assert_type_eq(NODE_NUMBER, &actual2);
     assert_num_eq(expect2, &actual2);
 }
 
@@ -771,10 +741,25 @@ static void test_cont_jmp_not_if(){
 	stack_pop(&actual2);
 	stack_pop(&actual);
 
-	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
-	assert_type_eq(NODE_NUMBER, &actual2);
     assert_num_eq(expect2, &actual2);
+}
+
+static void test_primitives() {
+	char *input = "{jmp_not_if} { jmp } {exec}";
+    int expect[3] = {OP_EXEC, OP_JMP, OP_JMP_NOT_IF};
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual[3];
+	int i;
+	for(i =0; i<3; i++) {
+		stack_pop(&actual[i]);
+	}
+
+	for(i=0; i<3; i++) {
+    	assert_primitive(expect[i], &actual[i]);
+	}
 }
 
 void unit_tests(){		
@@ -815,6 +800,7 @@ void unit_tests(){
 	test_cont_ifelse();
 	test_cont_jmp();
 	test_cont_jmp_not_if();
+	test_primitives();
  }
 
 static void test_file(FILE* input_fp){
@@ -824,7 +810,6 @@ static void test_file(FILE* input_fp){
 
 	struct Node actual;
 	stack_pop(&actual);
-	assert_type_eq(NODE_NUMBER, &actual);
     assert_num_eq(expect, &actual);
 }
 
