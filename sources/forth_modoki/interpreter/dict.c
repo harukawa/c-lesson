@@ -121,6 +121,7 @@ void assert_lname_eq(char *expect, struct Node *actual) {
 
 // assert Node NUMBER
 void assert_num_eq(int expect, struct Node *actual) {
+	assert(NODE_NUMBER == actual->ntype);
 	assert(expect == actual->u.number);
 }
 
