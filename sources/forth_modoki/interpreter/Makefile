@@ -13,10 +13,8 @@ dict.o: dict.c
 	cc -c dict.c
 main.o: main.c
 	cc -c main.c
-
 continuation.o: continuation.c
 	cc -c continuation.c
-
 primitives.o: primitives.c
 	cc -c primitives.c
 

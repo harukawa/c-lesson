@@ -77,6 +77,7 @@ static void test_two_push_two_pop() {
 	assert(expect == actual.pc);
 	assert(expect2 == actual2.pc);
 }
+
 #if 0
 int main() {
 	test_one_pop();
