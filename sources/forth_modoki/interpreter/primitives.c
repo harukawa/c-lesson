@@ -240,22 +240,59 @@ static void emit_primitive(struct Emitter *emit, int primitive_name) {
 }
 
 static int ifelse_compile(struct Emitter *emit) {
-	emit_number(emit, 3);
-	emit_number(emit, 2);
-	emit_name(emit, "roll");
+	emit_primitive(emit, OP_STORE); // body 2
+	emit_primitive(emit, OP_STORE); // body 1
 	emit_number(emit, 5);
 	emit_primitive(emit, OP_JMP_NOT_IF);
-	emit_name(emit, "pop");
+	emit_number(emit, 1);
+	emit_primitive(emit, OP_LOAD);
 	emit_primitive(emit, OP_EXEC);
 	emit_number(emit, 4);
 	emit_primitive(emit, OP_JMP);
-	emit_name(emit, "exch");
-	emit_name(emit, "pop");
+	emit_number(emit, 2);
+	emit_primitive(emit, OP_LOAD);
 	emit_primitive(emit, OP_EXEC);
 	
 	return emit->pos;
 }
 
+static int while_compile(struct Emitter *emit) {
+	emit_primitive(emit, OP_STORE); // body 2
+	emit_primitive(emit, OP_STORE); // cond 1
+	emit_number(emit, 1);
+	emit_primitive(emit, OP_LOAD);
+	emit_primitive(emit, OP_EXEC);
+	emit_number(emit, 6);
+	emit_primitive(emit, OP_JMP_NOT_IF);
+	emit_number(emit, 2);
+	emit_primitive(emit, OP_LOAD);
+	emit_primitive(emit, OP_EXEC);
+	emit_number(emit, -10);
+	emit_primitive(emit, OP_JMP);
+
+	return emit->pos;
+}
+
+static int repeat_compile(struct Emitter *emit) {
+	emit_primitive(emit, OP_STORE); // body 2
+	emit_primitive(emit, OP_STORE); // cond 1
+	emit_number(emit, 1);
+	emit_primitive(emit, OP_LOAD);
+	emit_number(emit, 10);
+	emit_primitive(emit, OP_JMP_NOT_IF);
+	emit_number(emit, 2);
+	emit_primitive(emit, OP_LOAD);
+	emit_primitive(emit, OP_EXEC);
+	emit_number(emit, 1);
+	emit_primitive(emit, OP_LOAD);
+	emit_primitive(emit, OP_LPOP); 
+	emit_number(emit, 1);
+	emit_name(emit, "sub");
+	emit_number(emit, -15);
+	emit_primitive(emit, OP_JMP);
+
+	return emit->pos;
+}
 
 
 static void register_one_primitive(char *input_key, void (*cfunc)(void)) {
@@ -297,10 +334,15 @@ void register_primitives(){
 	register_one_primitive("while", while_op);
 
 	register_one_compile_primitive("ifelse", ifelse_compile);
+	register_one_compile_primitive("while", while_compile);
+	register_one_compile_primitive("repeat", repeat_compile);
 
 	register_one_compile_primitive_word("exec", OP_EXEC);
 	register_one_compile_primitive_word("jmp", OP_JMP);
 	register_one_compile_primitive_word("jmp_not_if", OP_JMP_NOT_IF);
+	register_one_compile_primitive_word("store", OP_STORE);
+	register_one_compile_primitive_word("load", OP_LOAD);
+	register_one_compile_primitive_word("lpop", OP_LPOP);
 }
 
 
