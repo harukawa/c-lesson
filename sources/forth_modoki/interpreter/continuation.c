@@ -26,6 +26,19 @@ int co_pop(struct Continuation *cont){
 	}
 }
 
+void co_check(struct Continuation *out_cont, int n) {
+	struct Continuation pop_conts[n];
+	int i;
+	for(i = 0; i<n; i++) {
+		co_pop(&pop_conts[i]);
+	}
+	*out_cont = pop_conts[n-1];
+	for(i = n-1; i >= 0; i--){
+		co_push(&pop_conts[i]);
+	}
+}
+
+
 static void test_one_pop() {
 	co_init();
 	struct Continuation expect;

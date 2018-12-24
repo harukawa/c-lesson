@@ -34,12 +34,15 @@ enum NodeType {
 enum ExecWord {
 	OP_EXEC,
 	OP_JMP,
-	OP_JMP_NOT_IF
+	OP_JMP_NOT_IF,
+	OP_STORE,
+	OP_LOAD,
+	OP_LPOP
 };
 
 enum ContType {
-	NODE,
-	CONTINUATION,
+	CONT_NODE,
+	CONT_CONTINUATION
 };
 
 struct Node {
@@ -59,9 +62,9 @@ struct NodeArray {
 };
 
 struct Continuation {
-	//enum ContType ctype;
+	enum ContType ctype;
 	union {
-		struct Node *node;
+		struct Node node;
 		struct NodeArray *exec_array;
 	}u;
 	int pc;
@@ -100,3 +103,4 @@ void assert_type_eq(int expect, struct Node *actual);
 
 void co_push(struct Continuation *cont);
 int co_pop(struct Continuation *cont);
+void co_check(struct Continuation *out_cont, int n);

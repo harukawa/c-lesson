@@ -70,12 +70,15 @@ void eval_exec_array(struct NodeArray *byte_codes) {
 	struct Continuation cont;
 	cont.u.exec_array = byte_codes;
 	cont.pc = 0;
-//	cont.ctype = CONTINUATION;
+	cont.ctype = CONT_CONTINUATION;
 	int i;
 	
 	co_push(&cont);
 
 	while(co_pop(&cont)) {
+		if( cont.ctype != CONT_CONTINUATION ) {
+			continue;
+		}
 		for(i = cont.pc; i < cont.u.exec_array->len; i++){
 			switch(cont.u.exec_array->nodes[i].ntype) {
 				case NODE_NUMBER:
@@ -108,8 +111,24 @@ void eval_exec_array(struct NodeArray *byte_codes) {
 						co_push(&cont);
 						cont.u.exec_array = exec.u.byte_codes;
 						cont.pc = 0;
-						//cont.ctype = CONTINUATION;
+						cont.ctype = CONT_CONTINUATION;
 						co_push(&cont);
+					} else if(cont.u.exec_array->nodes[i].u.number == OP_STORE) {
+						struct Node any;
+						stack_pop(&any);
+						struct Continuation local;
+						local.u.node = any;
+						local.ctype = CONT_NODE;
+						co_push(&local);
+					} else if(cont.u.exec_array->nodes[i].u.number == OP_LOAD) {
+						struct Node num;
+						struct Continuation local;
+						stack_pop(&num);
+						co_check(&local, num.u.number);
+						stack_push(&local.u.node);
+					} else if(cont.u.exec_array->nodes[i].u.number == OP_LPOP) {
+						struct Continuation local;
+						co_pop(&local);
 					}
 					break;
 
@@ -123,7 +142,7 @@ void eval_exec_array(struct NodeArray *byte_codes) {
 							co_push(&cont);
 							cont.u.exec_array = node.u.byte_codes;
 							cont.pc = 0;
-						//	cont.ctype = CONTINUATION;
+							cont.ctype = CONT_CONTINUATION;
 							co_push(&cont);
 						} else {
 							stack_push(&node);
@@ -749,20 +768,59 @@ static void test_cont_jmp_not_if(){
 }
 
 static void test_primitives() {
-	char *input = "{jmp_not_if} { jmp } {exec}";
-    int expect[3] = {OP_EXEC, OP_JMP, OP_JMP_NOT_IF};
+	char *input = "{jmp_not_if} { jmp } {exec} { store} {load}";
+    int expect[5] = {OP_LOAD, OP_STORE, OP_EXEC, OP_JMP, OP_JMP_NOT_IF};
     cl_getc_set_src(input);
     eval();
 
-	struct Node actual[3];
+	struct Node actual[5];
 	int i;
-	for(i =0; i<3; i++) {
+	for(i =0; i<5; i++) {
 		stack_pop(&actual[i]);
 	}
 
-	for(i=0; i<3; i++) {
+	for(i=0; i<5; i++) {
     	assert_primitive(expect[i], &actual[i]);
 	}
+}
+
+static void test_store_load() {
+	char *input = "{ 3 4 store store 1 load  2 load} exec";
+    int expect = 3, expect2 = 4;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual;
+	struct Node actual2;
+	stack_pop(&actual2);
+	stack_pop(&actual);
+
+    assert_num_eq(expect, &actual);
+    assert_num_eq(expect2, &actual2);
+}
+
+static void test_cont_while() {
+	char *input = "{ 5 { dup 10 lt } {3 add } while } exec";
+    int expect = 11;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual;
+	stack_pop(&actual);
+
+    assert_num_eq(expect, &actual);
+}
+
+static void test_cont_lpop() {
+	char *input = "{ 3 4 store store lpop 1 load} exec";
+    int expect = 4;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual;
+	stack_pop(&actual);
+
+    assert_num_eq(expect, &actual);
 }
 
 void unit_tests(){		
@@ -804,6 +862,9 @@ void unit_tests(){
 	test_cont_jmp();
 	test_cont_jmp_not_if();
 	test_primitives();
+	test_store_load();
+	test_cont_while();
+	test_cont_lpop();
  }
 
 static void test_file(FILE* input_fp){
