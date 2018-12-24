@@ -3,6 +3,7 @@
 
 #define MAX_NAME_OP_NUMBERS 256
 
+
 int streq(char *s1, char *s2) {
 	if(strcmp(s1,s2)==0) {
 		return 1;

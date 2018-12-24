@@ -294,7 +294,6 @@ static int repeat_compile(struct Emitter *emit) {
 	return emit->pos;
 }
 
-
 static void register_one_primitive(char *input_key, void (*cfunc)(void)) {
 	struct Node node ={NODE_C_FUNC, {.cfunc = cfunc}};
 	dict_put(input_key, &node);
