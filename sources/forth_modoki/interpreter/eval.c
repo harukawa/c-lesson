@@ -68,30 +68,31 @@ static void compile_exec_array(struct Node *out_node, int prev_ch) {
 void eval_exec_array(struct NodeArray *byte_codes) {
 	struct Node node;
 	struct Continuation cont;
-	cont.exec_array = byte_codes;
+	cont.u.exec_array = byte_codes;
 	cont.pc = 0;
+//	cont.ctype = CONTINUATION;
 	int i;
 	
 	co_push(&cont);
 
 	while(co_pop(&cont)) {
-		for(i = cont.pc; i < cont.exec_array->len; i++){
-			switch(cont.exec_array->nodes[i].ntype) {
+		for(i = cont.pc; i < cont.u.exec_array->len; i++){
+			switch(cont.u.exec_array->nodes[i].ntype) {
 				case NODE_NUMBER:
-					stack_push(&cont.exec_array->nodes[i]);
+					stack_push(&cont.u.exec_array->nodes[i]);
 					break;
 
 				case NODE_LITERAL_NAME:
-					stack_push(&cont.exec_array->nodes[i]);
+					stack_push(&cont.u.exec_array->nodes[i]);
 					break;
 
 				case NODE_EXEC_PRIMITIVE:
-					if(cont.exec_array->nodes[i].u.number == OP_JMP) {
+					if(cont.u.exec_array->nodes[i].u.number == OP_JMP) {
 						struct Node num;
 						stack_pop(&num);
 						i += num.u.number;
 						if(i < 0){ i = 0;}
-					}else if(cont.exec_array->nodes[i].u.number == OP_JMP_NOT_IF) {
+					}else if(cont.u.exec_array->nodes[i].u.number == OP_JMP_NOT_IF) {
 						struct Node num, num2;
 						stack_pop(&num);
 						stack_pop(&num2);
@@ -99,39 +100,41 @@ void eval_exec_array(struct NodeArray *byte_codes) {
 							i += num.u.number;
 							if(i < 0){ i = 0;}
 						}
-					} else if(cont.exec_array->nodes[i].u.number == OP_EXEC) {
+					} else if(cont.u.exec_array->nodes[i].u.number == OP_EXEC) {
 						struct Node exec;
 						stack_pop(&exec);
 						cont.pc = i + 1;
-						i = cont.exec_array->len;
+						i = cont.u.exec_array->len;
 						co_push(&cont);
-						cont.exec_array = exec.u.byte_codes;
+						cont.u.exec_array = exec.u.byte_codes;
 						cont.pc = 0;
+						//cont.ctype = CONTINUATION;
 						co_push(&cont);
 					}
 					break;
 
 				case NODE_EXECUTABLE_NAME:
-					if(dict_get(cont.exec_array->nodes[i].u.name, &node)) {
+					if(dict_get(cont.u.exec_array->nodes[i].u.name, &node)) {
 						if(node.ntype == NODE_C_FUNC) {
 							node.u.cfunc();
 						} else if(node.ntype == NODE_EXECUTABLE_ARRAY) {
 							cont.pc = ++i;
-							i = cont.exec_array->len;
+							i = cont.u.exec_array->len;
 							co_push(&cont);
-							cont.exec_array = node.u.byte_codes;
+							cont.u.exec_array = node.u.byte_codes;
 							cont.pc = 0;
+						//	cont.ctype = CONTINUATION;
 							co_push(&cont);
 						} else {
 							stack_push(&node);
 						}
 					} else {
-							stack_push(&cont.exec_array->nodes[i]);
+							stack_push(&cont.u.exec_array->nodes[i]);
 					}
 					break;
 
 				case NODE_EXECUTABLE_ARRAY:
-					stack_push(&cont.exec_array->nodes[i]);
+					stack_push(&cont.u.exec_array->nodes[i]);
 					break;
 				default:
 					break;

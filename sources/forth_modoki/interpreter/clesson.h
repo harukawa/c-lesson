@@ -37,6 +37,11 @@ enum ExecWord {
 	OP_JMP_NOT_IF
 };
 
+enum ContType {
+	NODE,
+	CONTINUATION,
+};
+
 struct Node {
 	enum NodeType ntype;
 	union {
@@ -54,8 +59,17 @@ struct NodeArray {
 };
 
 struct Continuation {
-	struct NodeArray* exec_array;
+	//enum ContType ctype;
+	union {
+		struct Node *node;
+		struct NodeArray *exec_array;
+	}u;
 	int pc;
+};
+
+struct Emitter {
+	struct Node *nodes;
+	int pos;
 };
 
 
