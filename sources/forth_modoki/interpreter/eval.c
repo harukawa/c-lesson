@@ -126,18 +126,16 @@ void eval_exec_array(struct NodeArray *byte_codes) {
 						co_push(&local_store);
 					} else if(cont.u.exec_array->nodes[i].u.number == OP_LOAD) {
 						struct Node num;
-						struct Continuation local_load;
 						stack_pop(&num);
 						struct Continuation pop_conts[num.u.number];
 						int j;
 						for(j = 0; j<num.u.number; j++) {
 							co_pop(&pop_conts[j]);
 						}
-						local_load = pop_conts[j-1];
+						stack_push(&pop_conts[j-1].u.node);
 						for(j = num.u.number-1; j >= 0; j--){
 							co_push(&pop_conts[j]);
 						}
-						stack_push(&local_load.u.node);
 					} else if(cont.u.exec_array->nodes[i].u.number == OP_LPOP) {
 						struct Continuation pop_cont;
 						co_pop(&pop_cont);
