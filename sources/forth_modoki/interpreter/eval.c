@@ -18,6 +18,7 @@ static void compile_exec_array(struct Node *out_node, int prev_ch) {
 	struct Node node[MAX_NAME_OP_NUMBERS];
 	struct Node dict;
     do {
+		if(ch == '}') break;
         ch = parse_one(ch, &token);
         switch(token.ltype) {
         	case NUMBER:
@@ -63,6 +64,7 @@ static void compile_exec_array(struct Node *out_node, int prev_ch) {
 	memcpy(node_array->nodes, node, sizeof(struct Node)*count);
 	out_node->ntype = NODE_EXECUTABLE_ARRAY;
 	out_node->u.byte_codes = node_array;
+	
 }
 
 
@@ -106,30 +108,39 @@ void eval_exec_array(struct NodeArray *byte_codes) {
 						}
 					} else if(cont.u.exec_array->nodes[i].u.number == OP_EXEC) {
 						struct Node exec;
+						struct Continuation cont_exec;
 						stack_pop(&exec);
 						cont.pc = i + 1;
 						i = cont.u.exec_array->len;
 						co_push(&cont);
-						cont.u.exec_array = exec.u.byte_codes;
-						cont.pc = 0;
-						cont.ctype = CONT_CONTINUATION;
-						co_push(&cont);
+						cont_exec.u.exec_array = exec.u.byte_codes;
+						cont_exec.pc = 0;
+						cont_exec.ctype = CONT_CONTINUATION;
+						co_push(&cont_exec);
 					} else if(cont.u.exec_array->nodes[i].u.number == OP_STORE) {
 						struct Node any;
 						stack_pop(&any);
-						struct Continuation local;
-						local.u.node = any;
-						local.ctype = CONT_NODE;
-						co_push(&local);
+						struct Continuation local_store;
+						local_store.u.node = any;
+						local_store.ctype = CONT_NODE;
+						co_push(&local_store);
 					} else if(cont.u.exec_array->nodes[i].u.number == OP_LOAD) {
 						struct Node num;
-						struct Continuation local;
+						struct Continuation local_load;
 						stack_pop(&num);
-						co_check(&local, num.u.number);
-						stack_push(&local.u.node);
+						struct Continuation pop_conts[num.u.number];
+						int j;
+						for(j = 0; j<num.u.number; j++) {
+							co_pop(&pop_conts[j]);
+						}
+						local_load = pop_conts[j-1];
+						for(j = num.u.number-1; j >= 0; j--){
+							co_push(&pop_conts[j]);
+						}
+						stack_push(&local_load.u.node);
 					} else if(cont.u.exec_array->nodes[i].u.number == OP_LPOP) {
-						struct Continuation local;
-						co_pop(&local);
+						struct Continuation pop_cont;
+						co_pop(&pop_cont);
 					}
 					break;
 
@@ -738,6 +749,21 @@ static void test_cont_ifelse(){
     assert_num_eq(expect2, &actual2);
 }
 
+static void test_cont_ifelse2() {
+	char *input = "{1{1{3 4}{5 6}ifelse}{5 6}ifelse} exec";
+    int expect = 3, expect2 = 4;
+    cl_getc_set_src(input);
+    eval();
+
+	struct Node actual;
+	struct Node actual2;
+	stack_pop(&actual2);
+	stack_pop(&actual);
+
+    assert_num_eq(expect, &actual);
+    assert_num_eq(expect2, &actual2);
+}
+
 static void test_cont_jmp(){
 	char *input = "{3 1 jmp 2 4 } exec";
     int expect = 3, expect2 = 4;
@@ -800,6 +826,7 @@ static void test_store_load() {
     assert_num_eq(expect2, &actual2);
 }
 
+
 static void test_cont_while() {
 	char *input = "{ 5 { dup 10 lt } {3 add } while } exec";
     int expect = 11;
@@ -860,6 +887,7 @@ void unit_tests(){
 	test_def2();
 	test_cont_exec();
 	test_cont_ifelse();
+	test_cont_ifelse2();
 	test_cont_jmp();
 	test_cont_jmp_not_if();
 	test_primitives();
@@ -877,7 +905,7 @@ static void test_file(FILE* input_fp){
 	stack_pop(&actual);
     assert_num_eq(expect, &actual);
 }
-
+#if 0
 int main(int argc, char *argv[]) {
 	FILE *fp = NULL;
 	if(argc > 1){
@@ -894,4 +922,4 @@ int main(int argc, char *argv[]) {
 	}
 	return 0;
 }
-
+#endif
