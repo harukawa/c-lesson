@@ -26,6 +26,9 @@ int co_pop(struct Continuation *cont){
 	}
 }
 
+void co_peek(int pos, struct Node *out_node) {
+	*out_node = co_stack[co_stack_pos - pos].u.node;
+}
 
 static void test_one_pop() {
 	co_init();

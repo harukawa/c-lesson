@@ -1,6 +1,5 @@
 #include "clesson.h"
 #include <stdio.h>
-#if 0
 int main(int argc, char *argv[]) {
 	FILE *fp = NULL;
 	register_primitives();
@@ -14,6 +13,7 @@ int main(int argc, char *argv[]) {
 		eval();
 		stack_print_all();
 		fclose(fp);
+	} else {
+		unit_tests();
 	}
 }
-#endif

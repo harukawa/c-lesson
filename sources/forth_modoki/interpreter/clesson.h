@@ -95,7 +95,6 @@ void dict_print_all();
 int streq(char *s1, char *s2);
 void register_primitives();
 void eval();
-void test_units();
 
 void assert_lname_eq(char *expect, struct Node *actual);
 void assert_num_eq(int expect, struct Node *actual);
@@ -103,4 +102,5 @@ void assert_type_eq(int expect, struct Node *actual);
 
 void co_push(struct Continuation *cont);
 int co_pop(struct Continuation *cont);
+void co_peek(int pos, struct Node *out_node);
 
