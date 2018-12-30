@@ -13,7 +13,5 @@ int main(int argc, char *argv[]) {
 		eval();
 		stack_print_all();
 		fclose(fp);
-	} else {
-		unit_tests();
 	}
 }
