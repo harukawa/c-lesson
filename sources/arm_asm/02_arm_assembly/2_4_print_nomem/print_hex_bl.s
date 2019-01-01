@@ -25,23 +25,27 @@ end:
   b end
 
 print_hex:
-    lsr r2,r0,r3
-	and r2,r2,#0x0f
-	cmp r2,#0x0a
-	blt number
-	add r2,r2,#0x27
+  mov r2,#0x30
+  str r2,[r1]
+  mov r2,#0x78
+  str r2,[r1]
+print_hex_loop:
+  lsr r2,r0,r3
+  and r2,r2,#0x0f
+  cmp r2,#0x0a
+  blt number
+  add r2,r2,#0x27
 
 number:
-	add r2,r2,#0x30
-	str r2,[r1]
-	sub r3,r3,#4
-	cmp r3,#0
-	blt loop_end
-	b print_hex
+  add r2,r2,#0x30
+  str r2,[r1]
+  sub r3,r3,#4
+  cmp r3,#0
+  blt loop_end
+  b print_hex_loop
 
 loop_end:
-	mov r3,#28
-    mov r2,#0x0a
-	str r2,[r1]
-	mov r15,r14
-	
+  mov r3,#28
+  mov r2,#0x0a
+  str r2,[r1]
+  mov r15,r14
