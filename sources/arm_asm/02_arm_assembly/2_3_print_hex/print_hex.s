@@ -12,30 +12,30 @@
 */
 .globl _start
 _start:
-    ldr r0,=0x101f1000
-    ldr r1,=0xdeadbeaf
-	mov r3,#28
-    mov r2,#0x30
-    str r2,[r0]
-    mov r2,#0x78
-    str r2,[r0]
-    b print_hex
+  ldr r0,=0x101f1000
+  ldr r1,=0xdeadbeaf
+  mov r3,#28
+  mov r2,#0x30
+  str r2,[r0]
+  mov r2,#0x78
+  str r2,[r0]
+  b print_hex
 
 print_hex:
-    lsr r2,r1,r3
-	and r2,r2,#0x0f
-	cmp r2,#0x0a
-	blt number
-	add r2,r2,#0x27
+  lsr r2,r1,r3
+  and r2,r2,#0x0f
+  cmp r2,#0x0a
+  blt number
+  add r2,r2,#0x27
 
 number:
-	add r2,r2,#0x30
-	str r2,[r0]
-	sub r3,r3,#4
-	cmp r3,#0
-	blt end
-	b print_hex
-	
+  add r2,r2,#0x30
+  str r2,[r0]
+  sub r3,r3,#4
+  cmp r3,#0
+  blt end
+  b print_hex
+
 end:
-    b end
+  b end
 
