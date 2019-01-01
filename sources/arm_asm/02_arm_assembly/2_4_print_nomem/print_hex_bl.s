@@ -13,7 +13,6 @@
 .globl _start
 _start:
   ldr r1,=0x101f1000
-  mov r3,#28
   
   mov r0, r15 
   bl print_hex
@@ -25,6 +24,7 @@ end:
   b end
 
 print_hex:
+  mov r3,#28
   mov r2,#0x30
   str r2,[r1]
   mov r2,#0x78
@@ -45,7 +45,6 @@ number:
   b print_hex_loop
 
 loop_end:
-  mov r3,#28
   mov r2,#0x0a
   str r2,[r1]
   mov r15,r14
