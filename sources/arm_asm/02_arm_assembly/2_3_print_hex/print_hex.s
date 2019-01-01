@@ -15,6 +15,10 @@ _start:
     ldr r0,=0x101f1000
     ldr r1,=0xdeadbeaf
 	mov r3,#28
+    mov r2,#0x30
+    str r2,[r0]
+    mov r2,#0x78
+    str r2,[r0]
     b print_hex
 
 print_hex:
