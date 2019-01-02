@@ -29,7 +29,7 @@ putchar:
 
 print:
   // TODO: Fix this function too.
-  stmdb r13!, {r14}
+  stmdb r13!, {r1,r3,r14}
   ldrb r3,[r0]
 _loop:  
   bl putchar
@@ -37,7 +37,7 @@ _loop:
   ldrb r3,[r0]
   cmp r3,#0
   bne _loop
-  ldmia r13!, {r14}
+  ldmia r13!, {r1,r3,r14}
   mov r15, r14
 
 msg1: .asciz "First text.\n"

@@ -28,7 +28,7 @@ putchar:
   mov r15, r14  
 
 print_hex:
-  stmdb r13!, {r14}
+  stmdb r13!, {r1-r3,r14}
   mov r3,#28
 // print 0x
   mov r2,#0x30
@@ -51,5 +51,5 @@ _number:
 // print \n
   mov r2,#0x0a
   bl putchar
-  ldmia r13!, {r14}
+  ldmia r13!, {r1-r3,r14}
   mov r15,r14
