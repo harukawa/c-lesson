@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <string.h>
 #include "arm_asm.h"
 
 int streq(char *s1, char *s2) {
@@ -14,5 +15,5 @@ void assert_number(int expect, int actual) {
 }
 
 void assert_char(char *expect, char *actual) {
-	assert(strcmp(expect, actual));
+	assert(streq(expect, actual));
 }
