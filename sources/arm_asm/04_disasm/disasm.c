@@ -195,16 +195,20 @@ void two_file_regression(char *input_name, char *expect_name) {
 			printf("error\n");
 	}
 	int count = read_file_byte(input_fp);
-	read_file_byte(expect_fp);
 	
 	char *actual;
-	char *expect;
+	char expect[50];
+	int expect_size,j=0;
 	for(int i = 0; i < count; i++) {
 		actual = cl_get_result(i);
-		expect = cl_get_result(i + count);
-		assert_char(expect, actual);
+		fgets(expect, 50, expect_fp);
+		expect_size = strlen(expect);
+		expect[expect_size-2] = 10;
+		for(j = 50; j >= expect_size-1; j--) {
+			expect[j] = 0;
+		}
+		assert_streq(expect, actual);
 	}
-	
 	fclose(expect_fp);
 	fclose(input_fp);
 }
@@ -228,7 +232,7 @@ int main(int argc, char *argv[]) {
 		read_file_byte_print(fp);
 		fclose(fp);
 	}
-	unit_tests();
+	//unit_tests();
 	regression_test();
 }
 
