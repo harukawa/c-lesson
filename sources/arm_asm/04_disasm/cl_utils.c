@@ -59,3 +59,56 @@ int cl_hex_minus(int word, int digit) {
 	}
 	return 0;
 }
+
+int cl_rotate_bit(int shift, int word) {
+	int value = word;
+	shift = shift << 1;
+	int left_shift = 32 - shift;
+	value = value << left_shift;
+	
+	if(shift < 8 && shift != 0) {
+		int amari = word >> shift;
+		value = value + amari;
+	}
+	return value;
+}
+
+static void cl_rotate_test(){
+	int rotate = 0x1;
+	int input = 0xD7;
+	int expect = 0xC0000035;
+	
+	int actual = cl_rotate_bit(rotate,input);
+	assert(expect == actual);
+}
+
+static void cl_rotate_test2(){
+	int rotate = 0x7;
+	int input = 0xD7;
+	int expect = 0x035C0000;
+	
+	int actual = cl_rotate_bit(rotate,input);
+	assert(expect == actual);
+}
+
+static void cl_rotate_test3(){
+	int rotate = 0x0;
+	int input = 0xD7;
+	int expect = 0xD7;
+	
+	int actual = cl_rotate_bit(rotate,input);
+	assert(expect == actual);
+}
+
+static void cl_unit_test() {
+	cl_rotate_test();
+	cl_rotate_test2();
+	cl_rotate_test3();
+}
+
+#if 0
+int main(){
+	cl_unit_test();
+	return 0;
+}
+#endif

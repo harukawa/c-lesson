@@ -3,6 +3,7 @@
 
 
 int print_asm(int word) {
+	char *minus = "#0x";
 	// str & ldr
 	if(0xe5000000 == (word &0xe5000000)) {
 		int rn   = cl_select_bit(word,0x000f0000,4); //Base register
@@ -11,17 +12,21 @@ int print_asm(int word) {
 		int IP     = cl_select_bit(word,0x03000000,6);
 		int UBWL   = cl_select_bit(word,0x00f00000,5);
 		if (0x001 == (UBWL & 0x001)) {
-			cl_printf("ldr r%x,[r%x, #0x%x]\n",rd,rn,offset);
-			return LDR;
+			if (0x0100 == (UBWL & 0x0100)) {
+				cl_printf("ldr r%x,[r%x, #0x%x]\n",rd,rn,offset);
+				return LDRB;
+			} else {
+				cl_printf("ldr r%x,[r%x, #0x%x]\n",rd,rn,offset);
+				return LDR;
+			}
 		} else {
-			cl_printf("str r%x [r%x, #0x%x]\n",rd,rn,offset); 
+			cl_printf("str r%x, [r%x, #0x%x]\n",rd,rn,offset); 
 			return STR;
 		}
 	// b bl
 	} else if(0xea000000 == (word &0xea000000)) {
 		int L      = cl_select_bit(word,0x01000000,6);
 		int offset = cl_select_bit(word,0x00ffffff,0);
-		char *minus = "#0x";
 		offset = offset << 2;
 		if(cl_hex_minus(offset,5)) {
 			offset = ~offset + 0x1;
@@ -36,18 +41,36 @@ int print_asm(int word) {
 			cl_printf("b   [r15, %s%x]\n",minus,offset);
 			return B;
 		}
-	//mov
-	} else if(0xe3000000 == (word & 0xe3000000)){
+	//Data processing
+	} else if(0xe2000000 == (word & 0xe2000000)){
+		int opcode   = cl_select_bit(word,0x01e00000,5);
+		opcode = opcode >> 1;
+		int rn       = cl_select_bit(word,0x000f0000,4);
 		int rd       = cl_select_bit(word,0x0000f000,3);
 		int operand2 = cl_select_bit(word,0x00000fff,0);
-		if(cl_hex_minus(operand2,2)) {
-			operand2 = ~operand2 + 0x00000001;
-			operand2 = 0x00000fff & operand2;
-			cl_printf("mov r%x, #-0x%x\n",rd,operand2);
-		} else {
-			cl_printf("mov r%x, #0x%x\n",rd,operand2);
+		int i        = cl_select_bit(word,0x02000000,6);
+		if(i == 0x2) {
+			int rotate = operand2 >> 8;
+			operand2 = operand2 & 0x0ff;
+			operand2 = cl_rotate_bit(rotate,operand2);
 		}
-		return MOV;
+		//ADD
+		if(0x4 == opcode) {
+			cl_printf("add r%x, r%x, #0x%x\n",rd, rn, operand2);
+			return ADD;
+		//MOV
+		} else if(0xd == opcode) {
+			cl_printf("mov r%x, #0x%x\n",rd,operand2);
+			return MOV;
+		//CMP
+		} else if (0xa == opcode) {
+			cl_printf("cmp r%x, #%x\n",rn,operand2);
+			return CMP;
+		}	
+	//BNE
+	} else if(0x1afffffa == (word & 0x1afffffa)){
+		cl_printf("bne 0xc\n");
+		return BNE;
 	}
 	cl_printf("%x\n",word);
 	return UNKNOWN;
@@ -81,7 +104,7 @@ int read_file_byte(FILE *input_fp) {
 }
 
 static void test_mov() {
-	int input = 0xe3a01068;	
+	int input = 0xe3a03068;	
 	int actual = print_asm(input);	
 	assert_number(MOV, actual);
 }
@@ -128,6 +151,24 @@ static void test_bl2() {
 	assert_number(BL, actual);
 }
 
+static void test_bne() {
+	int input = 0x1afffffa;	
+	int actual = print_asm(input);
+	assert_number(BNE, actual);
+}
+
+static void test_add() {
+	int input = 0xe2811001;	
+	int actual = print_asm(input);
+	assert_number(ADD, actual);
+}
+
+static void test_cmp() {
+	int input = 0xe3530000;	
+	int actual = print_asm(input);
+	assert_number(CMP, actual);
+}
+
 static void unit_tests() {
 	test_mov();
 	test_mov2();
@@ -137,6 +178,9 @@ static void unit_tests() {
 	test_b2();
 	test_bl();
 	test_bl2();
+	test_bne();
+	test_add();
+	test_cmp();
 }
 
 void two_file_regression(char *input_name, char *expect_name) {
@@ -172,6 +216,7 @@ static void regression_test() {
 	cl_clear_output();
 }
 
+
 int main(int argc, char *argv[]) {
 	FILE *fp = NULL;
 	
@@ -183,6 +228,7 @@ int main(int argc, char *argv[]) {
 		read_file_byte_print(fp);
 		fclose(fp);
 	}
-	//unit_tests();
+	unit_tests();
 	regression_test();
 }
+

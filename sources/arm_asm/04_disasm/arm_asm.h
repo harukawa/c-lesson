@@ -4,10 +4,14 @@
 
 enum OperationType {
 	MOV,
+	CMP,
+	ADD,
 	LDR,
+	LDRB,
 	STR,
 	BL,
 	B,
+	BNE,
 	UNKNOWN
 };
 
@@ -20,6 +24,7 @@ void cl_printf(char *fmt, ...);
 
 int cl_select_bit(int word, int and, int shift);
 int cl_hex_minus(int word, int digit);
+int cl_rotate_bit(int shift, int word);
 
 void assert_number(int expect, int actual);
 void assert_char(char *expect, char *actual);
