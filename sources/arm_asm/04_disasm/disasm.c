@@ -1,19 +1,24 @@
 #include "arm_asm.h"
 
-
+//ARM7DI Data Sheetの表記を参考にした。
 
 int print_asm(int word) {
 	char *minus = "#0x";
-	// str & ldr
+	
+	// Single data transfer STR,LDR P42
 	if(0xe5000000 == (word &0xe5000000)) {
 		int rn   = cl_select_bit(word,0x000f0000,4); //Base register
 		int rd     = cl_select_bit(word,0x0000f000,3); //Source Destination register
-		int offset = cl_select_bit(word,0x00000fff,0);
-		int IP     = cl_select_bit(word,0x03000000,6);
-		int UBWL   = cl_select_bit(word,0x00f00000,5);
+		int offset = cl_select_bit(word,0x00000fff,0); // offset
+		int IP     = cl_select_bit(word,0x03000000,6); //I:Immediate offset P:Pre/Post indexing bit
+		int UBWL   = cl_select_bit(word,0x00f00000,5); //U:Up/Down B:Byte/Word W:Write-back L:Load/Store
+		// 1 = Load from memory 
+		// 0 = Store to memory
 		if (0x001 == (UBWL & 0x001)) {
+			// 1 = transfer byte quantity
+			// 0 = transfer word quantity
 			if (0x0100 == (UBWL & 0x0100)) {
-				cl_printf("ldr r%x,[r%x, #0x%x]\n",rd,rn,offset);
+				cl_printf("ldrb r%x,[r%x, #0x%x]\n",rd,rn,offset);
 				return LDRB;
 			} else {
 				cl_printf("ldr r%x,[r%x, #0x%x]\n",rd,rn,offset);
@@ -23,17 +28,19 @@ int print_asm(int word) {
 			cl_printf("str r%x, [r%x, #0x%x]\n",rd,rn,offset); 
 			return STR;
 		}
-	// b bl
+		
+	// Branch and Branch with link B,BL P27
 	} else if(0xea000000 == (word &0xea000000)) {
-		int L      = cl_select_bit(word,0x01000000,6);
-		int offset = cl_select_bit(word,0x00ffffff,0);
+		int L      = cl_select_bit(word,0x01000000,6); //Link bit
+		int offset = cl_select_bit(word,0x00ffffff,0); //offset
 		offset = offset << 2;
 		if(cl_hex_minus(offset,5)) {
 			offset = ~offset + 0x1;
 			offset = offset &0x00ffffff;
 			minus = "#-0x";
 		}
-
+		// 1 = Branch with Link
+		// 0 = Branch
 		if(0x1 ==(L & 0x1)) {
 			cl_printf("bl  [r15, %s%x]\n",minus,offset);
 			return BL;
@@ -41,28 +48,31 @@ int print_asm(int word) {
 			cl_printf("b   [r15, %s%x]\n",minus,offset);
 			return B;
 		}
-	//Data processing
+	//Data processing P29
 	} else if(0xe2000000 == (word & 0xe2000000)){
-		int opcode   = cl_select_bit(word,0x01e00000,5);
+		int opcode   = cl_select_bit(word,0x01e00000,5);// Operation Code
 		opcode = opcode >> 1;
-		int rn       = cl_select_bit(word,0x000f0000,4);
-		int rd       = cl_select_bit(word,0x0000f000,3);
-		int operand2 = cl_select_bit(word,0x00000fff,0);
-		int i        = cl_select_bit(word,0x02000000,6);
+		int rn       = cl_select_bit(word,0x000f0000,4);// 1st operand register
+		int rd       = cl_select_bit(word,0x0000f000,3);// Destination register
+		int operand2 = cl_select_bit(word,0x00000fff,0);// Operand2
+		int i        = cl_select_bit(word,0x02000000,6);// Immediate Operand
+		
+		// Operand 2 = 1 is an immediate value
+		//11-8:Rotate 7-0:Imm
 		if(i == 0x2) {
 			int rotate = operand2 >> 8;
 			operand2 = operand2 & 0x0ff;
 			operand2 = cl_rotate_bit(rotate,operand2);
 		}
-		//ADD
+		//ADD	OpCode = 0100
 		if(0x4 == opcode) {
 			cl_printf("add r%x, r%x, #0x%x\n",rd, rn, operand2);
 			return ADD;
-		//MOV
+		//MOV	OpCode = 1101
 		} else if(0xd == opcode) {
 			cl_printf("mov r%x, #0x%x\n",rd,operand2);
 			return MOV;
-		//CMP
+		//CMP	OpCode = 1010
 		} else if (0xa == opcode) {
 			cl_printf("cmp r%x, #%x\n",rn,operand2);
 			return CMP;
@@ -216,6 +226,7 @@ void two_file_regression(char *input_name, char *expect_name) {
 static void regression_test() {
 	cl_enable_buffer_mode();
 	two_file_regression("./test/test_input/hello_arm.bin","./test/test_expect/hello_arm.txt");
+	two_file_regression("./test/test_input/print_loop.bin","./test/test_expect/print_loop.txt");
 	cl_disable_buffer_mode();
 	cl_clear_output();
 }
@@ -232,7 +243,7 @@ int main(int argc, char *argv[]) {
 		read_file_byte_print(fp);
 		fclose(fp);
 	}
-	//unit_tests();
+	unit_tests();
 	regression_test();
 }
 
