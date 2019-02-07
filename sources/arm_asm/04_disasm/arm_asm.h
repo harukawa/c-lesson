@@ -27,4 +27,5 @@ int cl_hex_minus(int word, int digit);
 int cl_rotate_bit(int shift, int word);
 
 void assert_number(int expect, int actual);
-void assert_char(char *expect, char *actual);
+void assert_streq(char *expect, char *actual);
+void assert_substreq(char *expect,char *actual,int actual_len);

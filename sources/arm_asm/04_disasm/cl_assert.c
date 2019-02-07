@@ -14,6 +14,12 @@ void assert_number(int expect, int actual) {
 	assert(expect == actual);
 }
 
-void assert_char(char *expect, char *actual) {
+void assert_streq(char *expect, char *actual) {
 	assert(streq(expect, actual));
+}
+
+void assert_substreq(char *expect,char *actual,int actual_len) {
+	for(int i = 0; i < actual_len; i++) {
+		assert(expect[i] == actual[i]);
+	}
 }

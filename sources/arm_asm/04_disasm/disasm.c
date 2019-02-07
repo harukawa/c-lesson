@@ -18,14 +18,14 @@ int print_asm(int word) {
 			// 1 = transfer byte quantity
 			// 0 = transfer word quantity
 			if (0x0100 == (UBWL & 0x0100)) {
-				cl_printf("ldrb r%x,[r%x, #0x%x]\n",rd,rn,offset);
+				cl_printf("ldrb r%d,[r%d, #0x%x]\n",rd,rn,offset);
 				return LDRB;
 			} else {
-				cl_printf("ldr r%x,[r%x, #0x%x]\n",rd,rn,offset);
+				cl_printf("ldr r%d,[r%d, #0x%x]\n",rd,rn,offset);
 				return LDR;
 			}
 		} else {
-			cl_printf("str r%x, [r%x, #0x%x]\n",rd,rn,offset); 
+			cl_printf("str r%d, [r%d, #0x%x]\n",rd,rn,offset); 
 			return STR;
 		}
 		
@@ -66,15 +66,15 @@ int print_asm(int word) {
 		}
 		//ADD	OpCode = 0100
 		if(0x4 == opcode) {
-			cl_printf("add r%x, r%x, #0x%x\n",rd, rn, operand2);
+			cl_printf("add r%d, r%d, #0x%x\n",rd, rn, operand2);
 			return ADD;
 		//MOV	OpCode = 1101
 		} else if(0xd == opcode) {
-			cl_printf("mov r%x, #0x%x\n",rd,operand2);
+			cl_printf("mov r%d, #0x%x\n",rd,operand2);
 			return MOV;
 		//CMP	OpCode = 1010
 		} else if (0xa == opcode) {
-			cl_printf("cmp r%x, #%x\n",rn,operand2);
+			cl_printf("cmp r%d, #%x\n",rn,operand2);
 			return CMP;
 		}	
 	//BNE
@@ -180,6 +180,8 @@ static void test_cmp() {
 }
 
 static void unit_tests() {
+	cl_clear_output();
+	cl_enable_buffer_mode();
 	test_mov();
 	test_mov2();
 	test_ldr();
@@ -191,9 +193,11 @@ static void unit_tests() {
 	test_bne();
 	test_add();
 	test_cmp();
+	cl_disable_buffer_mode();
+	cl_clear_output();
 }
 
-void two_file_regression(char *input_name, char *expect_name) {
+void two_file_regression(char *expect_name, char *input_name) {
 	cl_clear_output();
 	FILE *input_fp = NULL;
 	FILE *expect_fp = NULL;
@@ -209,15 +213,14 @@ void two_file_regression(char *input_name, char *expect_name) {
 	char *actual;
 	char expect[50];
 	int expect_size,j=0;
+	int actual_len;
 	for(int i = 0; i < count; i++) {
 		actual = cl_get_result(i);
 		fgets(expect, 50, expect_fp);
-		expect_size = strlen(expect);
-		expect[expect_size-2] = 10;
-		for(j = 50; j >= expect_size-1; j--) {
-			expect[j] = 0;
-		}
-		assert_streq(expect, actual);
+
+		// 改行部分を削除して文字だけを比較する。
+		actual_len = strlen(actual) -1;
+		assert_substreq(expect, actual, actual_len);
 	}
 	fclose(expect_fp);
 	fclose(input_fp);
@@ -225,8 +228,8 @@ void two_file_regression(char *input_name, char *expect_name) {
 
 static void regression_test() {
 	cl_enable_buffer_mode();
-	two_file_regression("./test/test_input/hello_arm.bin","./test/test_expect/hello_arm.txt");
-	two_file_regression("./test/test_input/print_loop.bin","./test/test_expect/print_loop.txt");
+	two_file_regression("./test/test_expect/hello_arm.txt","./test/test_input/hello_arm.bin");
+	two_file_regression("./test/test_expect/print_loop.txt","./test/test_input/print_loop.bin");
 	cl_disable_buffer_mode();
 	cl_clear_output();
 }
@@ -243,6 +246,7 @@ int main(int argc, char *argv[]) {
 		read_file_byte_print(fp);
 		fclose(fp);
 	}
+
 	unit_tests();
 	regression_test();
 }
