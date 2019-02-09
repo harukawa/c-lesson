@@ -218,7 +218,7 @@ void two_file_regression(char *expect_name, char *input_name) {
 		actual = cl_get_result(i);
 		fgets(expect, 50, expect_fp);
 
-		// fgetsで読み取ったtxtの改行がLFの改行ではなくCRの改行を使っているため、
+		// fgetsで読み取ったtxtではCRの復帰を使っているため、
 		// 改行を除いた文字だけを比較します。
 		actual_len = strlen(actual)-1;
 		assert_substreq(expect, actual, actual_len);
