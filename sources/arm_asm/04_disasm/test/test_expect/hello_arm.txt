@@ -1,4 +1,4 @@
-ldr r0,[r15, #0x30]
+ldr r0, [r15, #0x30]
 mov r1, #0x68
 str r1, [r0, #0x0]
 mov r1, #0x65

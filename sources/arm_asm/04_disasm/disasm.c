@@ -18,10 +18,10 @@ int print_asm(int word) {
 			// 1 = transfer byte quantity
 			// 0 = transfer word quantity
 			if (0x0100 == (UBWL & 0x0100)) {
-				cl_printf("ldrb r%d,[r%d, #0x%x]\n",rd,rn,offset);
+				cl_printf("ldrb r%d, [r%d, #0x%x]\n",rd,rn,offset);
 				return LDRB;
 			} else {
-				cl_printf("ldr r%d,[r%d, #0x%x]\n",rd,rn,offset);
+				cl_printf("ldr r%d, [r%d, #0x%x]\n",rd,rn,offset);
 				return LDR;
 			}
 		} else {
@@ -63,9 +63,17 @@ int print_asm(int word) {
 			int rotate = operand2 >> 8;
 			operand2 = operand2 & 0x0ff;
 			operand2 = cl_rotate_bit(rotate,operand2);
-		}
+		} 
+		//AND   OpCode = 0000
+		if(0x0 == opcode) {
+			cl_printf("and r%d, r%d, #0x%x\n",rd, rn, operand2);
+			return AND;
+		//SUB	OpCode = 0010
+		} else if(0x2 == opcode) {
+			cl_printf("sub r%d, r%d, #0x%x\n",rd, rn, operand2);
+			return SUB;
 		//ADD	OpCode = 0100
-		if(0x4 == opcode) {
+		} else if(0x4 == opcode) {
 			cl_printf("add r%d, r%d, #0x%x\n",rd, rn, operand2);
 			return ADD;
 		//MOV	OpCode = 1101
@@ -74,13 +82,17 @@ int print_asm(int word) {
 			return MOV;
 		//CMP	OpCode = 1010
 		} else if (0xa == opcode) {
-			cl_printf("cmp r%d, #%x\n",rn,operand2);
+			cl_printf("cmp r%d, #0x%x\n",rn,operand2);
 			return CMP;
 		}	
 	//BNE
 	} else if(0x1afffffa == (word & 0x1afffffa)){
 		cl_printf("bne 0xc\n");
 		return BNE;
+	// LSR
+	} else if(0xe1a02331 == (word & 0xe1a02331)){
+		cl_printf("lsr r2, r1, r3\n");
+		return LSR;
 	}
 	cl_printf("%x\n",word);
 	return UNKNOWN;
@@ -179,6 +191,18 @@ static void test_cmp() {
 	assert_number(CMP, actual);
 }
 
+static void test_and() {
+	int input = 0xe202200f;	
+	int actual = print_asm(input);
+	assert_number(AND, actual);
+}
+
+static void test_sub() {
+	int input = 0xe2433007;	
+	int actual = print_asm(input);
+	assert_number(SUB, actual);
+}
+
 static void unit_tests() {
 	cl_clear_output();
 	cl_enable_buffer_mode();
@@ -193,6 +217,8 @@ static void unit_tests() {
 	test_bne();
 	test_add();
 	test_cmp();
+	test_and();
+	test_sub();
 	cl_disable_buffer_mode();
 	cl_clear_output();
 }
@@ -231,6 +257,7 @@ static void regression_test() {
 	cl_enable_buffer_mode();
 	two_file_regression("./test/test_expect/hello_arm.txt","./test/test_input/hello_arm.bin");
 	two_file_regression("./test/test_expect/print_loop.txt","./test/test_input/print_loop.bin");
+	two_file_regression("./test/test_expect/print_hex.txt","./test/test_input/print_hex.bin");
 	cl_disable_buffer_mode();
 	cl_clear_output();
 }

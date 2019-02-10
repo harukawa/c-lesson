@@ -1,10 +1,10 @@
-ldr r0,[r15, #0x28]
-ldr r1,[r15, #0x28]
-ldr r3,[r1, #0x0]
+ldr r0, [r15, #0x28]
+ldr r1, [r15, #0x28]
+ldr r3, [r1, #0x0]
 str r3, [r0, #0x0]
 add r1, r1, #0x1
-ldr r3,[r1, #0x0]
-cmp r3, #0
+ldr r3, [r1, #0x0]
+cmp r3, #0x0
 bne 0xc
 6c6c6568
 77202c6f

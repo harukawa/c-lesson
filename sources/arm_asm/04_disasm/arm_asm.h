@@ -5,6 +5,8 @@
 enum OperationType {
 	MOV,
 	CMP,
+	AND,
+	SUB,
 	ADD,
 	LDR,
 	LDRB,
@@ -12,6 +14,7 @@ enum OperationType {
 	BL,
 	B,
 	BNE,
+	LSR,
 	UNKNOWN
 };
 
