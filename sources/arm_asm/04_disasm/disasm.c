@@ -368,6 +368,7 @@ static void regression_test() {
 	two_file_regression("./test/test_expect/print_hex.txt","./test/test_input/print_hex.bin");
 	two_file_regression("./test/test_expect/print_hex_bl.txt","./test/test_input/print_hex_bl.bin");
 	two_file_regression("./test/test_expect/print_hex_mem.txt","./test/test_input/print_hex_mem.bin");
+	two_file_regression("./test/test_expect/print_hex_mem2.txt","./test/test_input/print_hex_mem2.bin");
 	two_file_regression("./test/test_expect/print_nomem.txt","./test/test_input/print_nomem.bin");
 	two_file_regression("./test/test_expect/putchar_mem.txt","./test/test_input/putchar_mem.bin");
 	cl_disable_buffer_mode();
