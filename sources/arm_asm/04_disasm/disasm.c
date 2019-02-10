@@ -18,6 +18,11 @@ int print_asm(int word) {
 		cl_printf("bne 0xc\n");
 		return BNE;
 	}
+	//BLT
+	if(0xba000000 == (word & 0xba000000)){
+		cl_printf("blt r15\n");
+		return BLT;
+	}
 	
 	// Single data transfer STR,LDR P42
 	if(0xe5000000 == (word &0xe5000000)) {
@@ -69,7 +74,6 @@ int print_asm(int word) {
 		int rd       = cl_select_bit(word,0x0000f000,3);// Destination register
 		int operand2 = cl_select_bit(word,0x00000fff,0);// Operand2
 		int i        = cl_select_bit(word,0x02000000,6);// Immediate Operand
-		i = i >> 1;
 		
 		// Operand 2 = 1 is an immediate value
 		//11-8:Rotate 7-0:Imm
@@ -93,7 +97,7 @@ int print_asm(int word) {
 		//MOV	OpCode = 1101
 		} else if(0xd == opcode) {
 			//即値
-			if(i == 1){
+			if(i == 0x2){
 				cl_printf("mov r%d, #0x%x\n",rd,operand2);
 			//レジスタ
 			} else {
@@ -107,7 +111,7 @@ int print_asm(int word) {
 		}
 	}
 
-	cl_printf("%x\n",word);
+	cl_printf("%08x\n",word);
 	return UNKNOWN;
 }
 
@@ -139,101 +143,185 @@ int read_file_byte(FILE *input_fp) {
 }
 
 static void test_mov() {
+	cl_clear_output();
 	int input = 0xe3a03068;	
-	int actual = print_asm(input);	
-	assert_number(MOV, actual);
+	char *expect = "mov r3, #0x68\n";
+	
+	int actual_type = print_asm(input);
+	char *actual = cl_get_result(0);
+
+	assert_streq(expect, actual);
+	assert_number(MOV, actual_type);
 }
 
-static void test_mov2() {
+static void test_mov_rotate() {
+	cl_clear_output();
 	int input = 0xe3a01848;	
-	int actual = print_asm(input);	
-	assert_number(MOV, actual);
+	char *expect = "mov r1, #0x480000\n";
+	
+	int actual_type = print_asm(input);
+	char *actual = cl_get_result(0);
+
+	assert_streq(expect, actual);
+	assert_number(MOV, actual_type);
 }
 
-static void test_mov3() {
+static void test_mov_register() {
+	cl_clear_output();
 	int input = 0xe1a0f00a;	
-	int actual = print_asm(input);	
-	assert_number(MOV, actual);
+	char *expect = "mov r15, r10\n";
+	
+	int actual_type = print_asm(input);	
+	char *actual = cl_get_result(0);
+
+	assert_streq(expect, actual);
+	assert_number(MOV, actual_type);
 }
 
 static void test_ldr() {
+	cl_clear_output();
 	int input = 0xe59f0030;	
-	int actual = print_asm(input);	
-	assert_number(LDR, actual);
+	char *expect = "ldr r0, [r15, #0x30]\n";
+	
+	int actual_type = print_asm(input);
+	char *actual = cl_get_result(0);
+
+	assert_streq(expect, actual);
+	assert_number(LDR, actual_type);
 }
 
 static void test_str() {
+	cl_clear_output();
 	int input = 0xe5801000;	
-	int actual = print_asm(input);	
-	assert_number(STR, actual);
+	char *expect = "str r1, [r0, #0x0]\n";
+	
+	int actual_type = print_asm(input);
+	char *actual = cl_get_result(0);
+
+	assert_streq(expect, actual);
+	assert_number(STR, actual_type);
 }
 
 static void test_b() {
-	int input = 0xeafffffe;	
-	int actual = print_asm(input);	
-	assert_number(B, actual);
+	cl_clear_output();
+	int input = 0xea00000e;	
+	char *expect = "b   [r15, #0x38]\n";
+	
+	int actual_type = print_asm(input);
+	char *actual = cl_get_result(0);
+
+	assert_streq(expect, actual);
+	assert_number(B, actual_type);
 }
 
-static void test_b2() {
-	int input = 0xea00000e;	
-	int actual = print_asm(input);	
-	assert_number(B, actual);
+static void test_b_minus() {
+	cl_clear_output();
+	int input = 0xeafffffe;	
+	char *expect = "b   [r15, #-0x8]\n";
+	
+	int actual_type = print_asm(input);
+	char *actual = cl_get_result(0);
+
+	assert_streq(expect, actual);
+	assert_number(B, actual_type);
 }
 
 static void test_bl() {
+	cl_clear_output();
 	int input = 0xeb000010;	
-	int actual = print_asm(input);
-	assert_number(BL, actual);
+	char *expect = "bl  [r15, #0x40]\n";
+	
+	int actual_type = print_asm(input);
+	char *actual = cl_get_result(0);
+
+	assert_streq(expect, actual);
+	assert_number(BL, actual_type);
 }
 
-static void test_bl2() {
+static void test_bl_minus() {
+	cl_clear_output();
 	int input = 0xebffffff;	
-	int actual = print_asm(input);
-	assert_number(BL, actual);
+	char *expect = "bl  [r15, #-0x4]\n";
+	
+	int actual_type = print_asm(input);
+	char *actual = cl_get_result(0);
+
+	assert_streq(expect, actual);
+	assert_number(BL, actual_type);
 }
 
 static void test_bne() {
+	cl_clear_output();
 	int input = 0x1afffffa;	
-	int actual = print_asm(input);
-	assert_number(BNE, actual);
+	char *expect = "bne 0xc\n";
+	
+	int actual_type = print_asm(input);
+	char *actual = cl_get_result(0);
+
+	assert_streq(expect, actual);
+	assert_number(BNE, actual_type);
 }
 
 static void test_add() {
+	cl_clear_output();
 	int input = 0xe2811001;	
-	int actual = print_asm(input);
-	assert_number(ADD, actual);
+	char *expect = "add r1, r1, #0x1\n";
+	
+	int actual_type = print_asm(input);
+	char *actual = cl_get_result(0);
+
+	assert_streq(expect, actual);
+	assert_number(ADD, actual_type);
 }
 
 static void test_cmp() {
+	cl_clear_output();
 	int input = 0xe3530000;	
-	int actual = print_asm(input);
-	assert_number(CMP, actual);
+	char *expect = "cmp r3, #0x0\n";
+	
+	int actual_type = print_asm(input);
+	char *actual = cl_get_result(0);
+
+	assert_streq(expect, actual);
+	assert_number(CMP, actual_type);
 }
 
 static void test_and() {
-	int input = 0xe202200f;	
-	int actual = print_asm(input);
-	assert_number(AND, actual);
+	cl_clear_output();
+	int input = 0xe202200f;
+	char *expect = "and r2, r2, #0xf\n";
+	
+	int actual_type = print_asm(input);
+	char *actual = cl_get_result(0);
+
+	assert_streq(expect, actual);
+	assert_number(AND, actual_type);
 }
 
 static void test_sub() {
+	cl_clear_output();
 	int input = 0xe2433007;	
-	int actual = print_asm(input);
-	assert_number(SUB, actual);
+	char *expect = "sub r3, r3, #0x7\n";
+	
+	int actual_type = print_asm(input);
+	char *actual = cl_get_result(0);
+
+	assert_streq(expect, actual);
+	assert_number(SUB, actual_type);
 }
 
 static void unit_tests() {
 	cl_clear_output();
 	cl_enable_buffer_mode();
 	test_mov();
-	test_mov2();
-	test_mov3();
+	test_mov_rotate();
+	test_mov_register();
 	test_ldr();
 	test_str();
 	test_b();
-	test_b2();
+	test_b_minus();
 	test_bl();
-	test_bl2();
+	test_bl_minus();
 	test_bne();
 	test_add();
 	test_cmp();
