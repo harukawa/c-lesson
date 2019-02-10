@@ -15,7 +15,7 @@ int print_asm(int word) {
 	}
 	//BNE
 	if(0x1afffffa == (word & 0x1afffffa)){
-		cl_printf("bne 0xc\n");
+		cl_printf("bne label\n");
 		return BNE;
 	}
 	//BLT
@@ -253,7 +253,7 @@ static void test_bl_minus() {
 static void test_bne() {
 	cl_clear_output();
 	int input = 0x1afffffa;	
-	char *expect = "bne 0xc\n";
+	char *expect = "bne label\n";
 	
 	int actual_type = print_asm(input);
 	char *actual = cl_get_result(0);

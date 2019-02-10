@@ -13,7 +13,7 @@ bl  [r15, #-0x1c]
 add r0, r0, #0x1
 ldr r3, [r0, #0x0]
 cmp r3, #0x0
-bne 0xc
+bne label
 e8bd400a
 mov r15, r14
 73726946
