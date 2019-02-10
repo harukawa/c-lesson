@@ -72,7 +72,7 @@ int print_asm(int word) {
 		cl_printf("bne 0xc\n");
 		return BNE;
 	}
-	cl_printf("%x\n",word);
+	cl_printf("%08x\n",word);
 	return UNKNOWN;
 }
 
