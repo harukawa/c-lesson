@@ -14,7 +14,7 @@ mov r0, r14
 bl  [r15, #0x4]
 mov r14, r0
 mov r15, r14
-e92d400e
+push register_list
 mov r3, #0x1c
 mov r2, #0x30
 bl  [r15, #-0x30]

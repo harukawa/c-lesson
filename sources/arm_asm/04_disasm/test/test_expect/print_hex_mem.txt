@@ -7,7 +7,7 @@ b   [r15, #-0x8]
 ldr r1, [r15, #0x54]
 str r2, [r1, #0x0]
 mov r15, r14
-e92d400e
+push register_list
 mov r3, #0x1c
 mov r2, #0x30
 bl  [r15, #-0x20]

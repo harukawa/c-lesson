@@ -23,6 +23,11 @@ int print_asm(int word) {
 		cl_printf("blt [r15]\n");
 		return BLT;
 	}
+	//PUSH
+	if(0xe92d4000 == (word & 0xeffffff0)){
+		cl_printf("push register_list\n");
+		return PUSH;
+	}
 	
 	// Single data transfer STR,LDR P42
 	if(0xe5000000 == (word &0xe5000000)) {
