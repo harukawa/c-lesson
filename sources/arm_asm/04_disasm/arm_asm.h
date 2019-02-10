@@ -15,6 +15,7 @@ enum OperationType {
 	B,
 	BNE,
 	LSR,
+	BLT,
 	UNKNOWN
 };
 
