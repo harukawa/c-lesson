@@ -9,13 +9,13 @@ b   [r15, #-0x4]
 lsr r2, r1, r3
 and r2, r2, #0xf
 cmp r2, #0xa
-ba000000
+blt [r15]
 add r2, r2, #0x27
 add r2, r2, #0x30
 str r2, [r0, #0x0]
 sub r3, r3, #0x4
 cmp r3, #0x0
-ba000000
+blt [r15]
 b   [r15, #-0x30]
 b   [r15, #-0x8]
 101f1000

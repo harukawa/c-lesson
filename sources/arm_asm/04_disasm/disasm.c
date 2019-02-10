@@ -20,7 +20,7 @@ int print_asm(int word) {
 	}
 	//BLT
 	if(0xba000000 == (word & 0xba000000)){
-		cl_printf("blt r15\n");
+		cl_printf("blt [r15]\n");
 		return BLT;
 	}
 	
