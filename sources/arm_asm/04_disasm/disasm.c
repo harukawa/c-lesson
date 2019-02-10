@@ -150,6 +150,12 @@ static void test_mov2() {
 	assert_number(MOV, actual);
 }
 
+static void test_mov3() {
+	int input = 0xe1a0f00a;	
+	int actual = print_asm(input);	
+	assert_number(MOV, actual);
+}
+
 static void test_ldr() {
 	int input = 0xe59f0030;	
 	int actual = print_asm(input);	
@@ -221,6 +227,7 @@ static void unit_tests() {
 	cl_enable_buffer_mode();
 	test_mov();
 	test_mov2();
+	test_mov3();
 	test_ldr();
 	test_str();
 	test_b();
@@ -268,9 +275,9 @@ void two_file_regression(char *expect_name, char *input_name) {
 
 static void regression_test() {
 	cl_enable_buffer_mode();
-	//two_file_regression("./test/test_expect/hello_arm.txt","./test/test_input/hello_arm.bin");
-	//two_file_regression("./test/test_expect/print_loop.txt","./test/test_input/print_loop.bin");
-	//two_file_regression("./test/test_expect/print_hex.txt","./test/test_input/print_hex.bin");
+	two_file_regression("./test/test_expect/hello_arm.txt","./test/test_input/hello_arm.bin");
+	two_file_regression("./test/test_expect/print_loop.txt","./test/test_input/print_loop.bin");
+	two_file_regression("./test/test_expect/print_hex.txt","./test/test_input/print_hex.bin");
 	two_file_regression("./test/test_expect/print_hex_bl.txt","./test/test_input/print_hex_bl.bin");
 	cl_disable_buffer_mode();
 	cl_clear_output();
