@@ -16,7 +16,7 @@ int print_asm(int word) {
 		return LSR;
 	}
 	//BNE
-	if(0x1a000000 == (word & 0x1a000000)){
+	if(0x1a000000 == (word & 0xfa000000)){
 		int offset = cl_select_bit(word,0x00ffffff,0); //offset
 		offset = offset << 2;
 		if(cl_hex_minus(offset,5)) {
@@ -57,7 +57,7 @@ int print_asm(int word) {
 			}
 		}
 		//register listの文を作成する。
-		char name[NAME_SIZE];
+		char name[NAME_SIZE] = "";
 		int length;
 		strcat(name, "{r");
 		for(i = 0; i<count; i++){
@@ -369,12 +369,12 @@ static void test_sub() {
 
 static void test_ldmia() {
 	cl_clear_output();
-	int input = 0xee8bd400e;	
+	int input = 0xe8bd400e;	
 	char *expect = "ldmia r13!, {r1, r2, r3, r14}\n";
 	
 	int actual_type = print_asm(input);
 	char *actual = cl_get_result(0);
-
+	printf("%s%s\n",actual,expect);
 	assert_streq(expect, actual);
 	assert_number(LDMIA, actual_type);
 }
@@ -459,6 +459,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	unit_tests();
-	//regression_test();
+	regression_test();
 }
 

@@ -9,7 +9,7 @@ str r3, [r1, #0x0]
 add r0, r0, #0x1
 ldr r3, [r0, #0x0]
 cmp r3, #0x0
-bne label
+bne [r15, #-0x18]
 mov r15, r14
 73726946
 65742074

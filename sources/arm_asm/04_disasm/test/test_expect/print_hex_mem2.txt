@@ -32,6 +32,6 @@ cmp r3, #0x0
 aafffff5
 mov r2, #0xa
 bl  [r15, #-0x68]
-e8bd400e
+ldmia r13!, {r1, r2, r3, r14}
 mov r15, r14
 101f1000
