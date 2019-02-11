@@ -16,9 +16,15 @@ int print_asm(int word) {
 		return LSR;
 	}
 	//BNE
-	if(0x1afffffa == (word & 0x1afffffa)){
-		//　ハードコードできないため固定文にしました。
-		cl_printf("bne label\n");
+	if(0x1a000000 == (word & 0x1a000000)){
+		int offset = cl_select_bit(word,0x00ffffff,0); //offset
+		offset = offset << 2;
+		if(cl_hex_minus(offset,5)) {
+			offset = ~offset + 0x1;
+			offset = offset &0x00ffffff;
+			minus = "#-0x";
+		}
+		cl_printf("bne [r15, %s%x]\n",minus,offset);
 		return BNE;
 	}
 	//BLT
@@ -42,7 +48,7 @@ int print_asm(int word) {
 		//register listの解読を行う。
 		int registers,i;
 		int count = 0;
-		int list[16];
+		int list[16] = {0,};
 		for(i = 0; i<16; i++) {
 			registers = register_list >> i;
 			if(0x1 == (registers & 0x0001)) {
@@ -304,7 +310,7 @@ static void test_bl_minus() {
 static void test_bne() {
 	cl_clear_output();
 	int input = 0x1afffffa;	
-	char *expect = "bne label\n";
+	char *expect = "bne [r15, #-0x18]\n";
 	
 	int actual_type = print_asm(input);
 	char *actual = cl_get_result(0);
@@ -369,7 +375,6 @@ static void test_ldmia() {
 	int actual_type = print_asm(input);
 	char *actual = cl_get_result(0);
 
-	printf("%s\n",actual);
 	assert_streq(expect, actual);
 	assert_number(LDMIA, actual_type);
 }
