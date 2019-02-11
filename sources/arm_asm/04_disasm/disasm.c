@@ -1,5 +1,7 @@
 #include "arm_asm.h"
 
+#define NAME_SIZE 256
+
 //ARM7DI Data Sheetの表記を参考にした。
 
 int print_asm(int word) {
@@ -30,8 +32,51 @@ int print_asm(int word) {
 		return PUSH;
 	}
 	
+	// Block Data Transfer LDM P48
+	if(0xe8000000 == (word &0xee000000)) {
+		int rn   = cl_select_bit(word,0x000f0000,4); //Base register
+		int p    = cl_select_bit(word,0x01000000,6); //Pre/Post indexing bit
+		int USWL = cl_select_bit(word,0x00f00000,5); //Up/Down, PSR&force, Write-back, Load/Store
+		int register_list = cl_select_bit(word,0x0000ffff,0);
+		
+		//register listの解読を行う。
+		int registers,i;
+		int count = 0;
+		int list[16];
+		for(i = 0; i<16; i++) {
+			registers = register_list >> i;
+			if(0x1 == (registers & 0x0001)) {
+				list[count] = i;
+				count++;
+			}
+		}
+		//register listの文を作成する。
+		char name[NAME_SIZE];
+		int length;
+		strcat(name, "{r");
+		for(i = 0; i<count; i++){
+			length = strlen(name);
+			// ASCiiコードで数字を入れる。 48を足すのはASCiiコードの48が数字の0のため
+			if(list[i] < 10) {
+				name[length] = 48 + list[i];
+			} else {
+				//1を先に入れて、一桁目の数字を次に入れる。
+				name[length] = 49; // 49 = '1';
+				name[length+1] = 48 + list[i] -10;
+			}
+			if(i != (count -1)) {
+				strcat(name, ", r");
+			}
+		}
+		strcat(name, "}");
+		//Addresing mode P53
+		//LDMIA
+		if(0x0 == p && 0x9 == (USWL & 0x9)) {
+			cl_printf("ldmia r%d!, %s\n",rn,name);
+			return LDMIA;
+		}
 	// Single data transfer STR,LDR P42
-	if(0xe5000000 == (word &0xe5000000)) {
+	} else if(0xe5000000 == (word &0xe5000000)) {
 		int rn   = cl_select_bit(word,0x000f0000,4); //Base register
 		int rd     = cl_select_bit(word,0x0000f000,3); //Source Destination register
 		int offset = cl_select_bit(word,0x00000fff,0); // offset
@@ -316,6 +361,19 @@ static void test_sub() {
 	assert_number(SUB, actual_type);
 }
 
+static void test_ldmia() {
+	cl_clear_output();
+	int input = 0xee8bd400e;	
+	char *expect = "ldmia r13!, {r1, r2, r3, r14}\n";
+	
+	int actual_type = print_asm(input);
+	char *actual = cl_get_result(0);
+
+	printf("%s\n",actual);
+	assert_streq(expect, actual);
+	assert_number(LDMIA, actual_type);
+}
+
 static void unit_tests() {
 	cl_clear_output();
 	cl_enable_buffer_mode();
@@ -333,6 +391,7 @@ static void unit_tests() {
 	test_cmp();
 	test_and();
 	test_sub();
+	test_ldmia();
 	cl_disable_buffer_mode();
 	cl_clear_output();
 }
@@ -395,6 +454,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	unit_tests();
-	regression_test();
+	//regression_test();
 }
 
