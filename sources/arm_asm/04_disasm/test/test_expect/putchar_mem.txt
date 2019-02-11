@@ -7,7 +7,7 @@ b   [r15, #-0x8]
 ldr r1, [r15, #0x4c]
 str r3, [r1, #0x0]
 mov r15, r14
-push register_list
+push {}
 ldr r3, [r0, #0x0]
 bl  [r15, #-0x1c]
 add r0, r0, #0x1

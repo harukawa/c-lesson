@@ -15,6 +15,7 @@ int print_asm(int word) {
 	}
 	//BNE
 	if(0x1afffffa == (word & 0x1afffffa)){
+		//　ハードコードできないため固定文にしました。
 		cl_printf("bne label\n");
 		return BNE;
 	}
@@ -25,7 +26,7 @@ int print_asm(int word) {
 	}
 	//PUSH
 	if(0xe92d4000 == (word & 0xeffffff0)){
-		cl_printf("push register_list\n");
+		cl_printf("push {}\n");
 		return PUSH;
 	}
 	
