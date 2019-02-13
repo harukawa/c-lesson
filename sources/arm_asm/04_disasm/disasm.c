@@ -15,6 +15,30 @@ int print_asm(int word) {
 		cl_printf("lsr r%d, r%d, r%d\n",left, center, right);
 		return LSR;
 	}
+	// BGE
+	if(0xaa000000 == (word & 0xff000000)){
+		int offset = cl_select_bit(word,0x00ffffff,0); //offset
+		offset = offset << 2;
+		if(cl_hex_minus(offset,5)) {
+			offset = ~offset + 0x1;
+			offset = offset &0x00ffffff;
+			minus = "#-0x";
+		}
+		cl_printf("bge [r15, %s%x]\n",minus,offset);
+		return BGE;
+	}
+	// BEQ
+	if(0x0a000000 == (word & 0xff000000)){
+		int offset = cl_select_bit(word,0x00ffffff,0); //offset
+		offset = offset << 2;
+		if(cl_hex_minus(offset,5)) {
+			offset = ~offset + 0x1;
+			offset = offset &0x00ffffff;
+			minus = "#-0x";
+		}
+		cl_printf("beq [r15, %s%x]\n",minus,offset);
+		return BEQ;
+	}
 	//BNE
 	if(0x1a000000 == (word & 0xfa000000)){
 		int offset = cl_select_bit(word,0x00ffffff,0); //offset
@@ -83,7 +107,7 @@ int print_asm(int word) {
 		}
 	// Single data transfer STR,LDR P42
 	} else if(0xe5000000 == (word &0xe5000000)) {
-		int rn   = cl_select_bit(word,0x000f0000,4); //Base register
+		int rn   =   cl_select_bit(word,0x000f0000,4); //Base register
 		int rd     = cl_select_bit(word,0x0000f000,3); //Source Destination register
 		int offset = cl_select_bit(word,0x00000fff,0); // offset
 		int IP     = cl_select_bit(word,0x03000000,6); //I:Immediate offset P:Pre/Post indexing bit
@@ -319,6 +343,29 @@ static void test_bne() {
 	assert_number(BNE, actual_type);
 }
 
+static void test_bge() {
+	cl_clear_output();
+	int input = 0xaafffff5;	
+	char *expect = "bge [r15, #-0x2c]\n";
+	
+	int actual_type = print_asm(input);
+	char *actual = cl_get_result(0);
+
+	assert_streq(expect, actual);
+	assert_number(BGE, actual_type);
+}
+static void test_beq() {
+	cl_clear_output();
+	int input = 0x0a2e7478;	
+	char *expect = "beq [r15, #-0x462e20]\n";
+	
+	int actual_type = print_asm(input);
+	char *actual = cl_get_result(0);
+
+	assert_streq(expect, actual);
+	assert_number(BEQ, actual_type);
+}
+
 static void test_add() {
 	cl_clear_output();
 	int input = 0xe2811001;	
@@ -397,6 +444,8 @@ static void unit_tests() {
 	test_and();
 	test_sub();
 	test_ldmia();
+	test_bge();
+	test_beq();
 	cl_disable_buffer_mode();
 	cl_clear_output();
 }
@@ -459,6 +508,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	unit_tests();
-	regression_test();
+	//regression_test();
 }
 
