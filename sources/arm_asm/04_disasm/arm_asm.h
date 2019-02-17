@@ -14,6 +14,7 @@ enum OperationType {
 	BL,
 	B,
 	BNE,
+	BGE,
 	LSR,
 	BLT,
 	PUSH,

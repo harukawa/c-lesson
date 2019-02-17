@@ -27,8 +27,8 @@ int print_asm(int word) {
 		cl_printf("bge [r15, %s%x]\n",minus,offset);
 		return BGE;
 	}
-	// BEQ
-	if(0x0a000000 == (word & 0xff000000)){
+	/*
+	if(0xaa000000 == (word & 0xff000000)){
 		int offset = cl_select_bit(word,0x00ffffff,0); //offset
 		offset = offset << 2;
 		if(cl_hex_minus(offset,5)) {
@@ -38,7 +38,7 @@ int print_asm(int word) {
 		}
 		cl_printf("beq [r15, %s%x]\n",minus,offset);
 		return BEQ;
-	}
+	}*/
 	//BNE
 	if(0x1a000000 == (word & 0xfa000000)){
 		int offset = cl_select_bit(word,0x00ffffff,0); //offset
@@ -354,17 +354,7 @@ static void test_bge() {
 	assert_streq(expect, actual);
 	assert_number(BGE, actual_type);
 }
-static void test_beq() {
-	cl_clear_output();
-	int input = 0x0a2e7478;	
-	char *expect = "beq [r15, #-0x462e20]\n";
-	
-	int actual_type = print_asm(input);
-	char *actual = cl_get_result(0);
 
-	assert_streq(expect, actual);
-	assert_number(BEQ, actual_type);
-}
 
 static void test_add() {
 	cl_clear_output();
@@ -421,7 +411,7 @@ static void test_ldmia() {
 	
 	int actual_type = print_asm(input);
 	char *actual = cl_get_result(0);
-	printf("%s%s\n",actual,expect);
+
 	assert_streq(expect, actual);
 	assert_number(LDMIA, actual_type);
 }
@@ -445,7 +435,6 @@ static void unit_tests() {
 	test_sub();
 	test_ldmia();
 	test_bge();
-	test_beq();
 	cl_disable_buffer_mode();
 	cl_clear_output();
 }
@@ -508,6 +497,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	unit_tests();
-	//regression_test();
+	regression_test();
 }
 

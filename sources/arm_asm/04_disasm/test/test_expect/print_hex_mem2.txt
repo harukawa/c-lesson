@@ -29,7 +29,7 @@ add r2, r2, #0x30
 bl  [r15, #-0x54]
 sub r3, r3, #0x4
 cmp r3, #0x0
-aafffff5
+bge [r15, #-0x2c]
 mov r2, #0xa
 bl  [r15, #-0x68]
 ldmia r13!, {r1, r2, r3, r14}
