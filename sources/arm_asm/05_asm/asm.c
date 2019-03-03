@@ -51,6 +51,9 @@ int asm_one(char *str) {
 }
 
 int asm_mov(char *str) {
+	// Data processing P29 MOV
+	// rd       0x0000f000
+	// operand  0x00000fff
 	int rd,operand;
 	int len = 0, tmp;
 	
