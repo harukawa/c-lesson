@@ -48,7 +48,7 @@ static void test_getline() {
 static void unit_test() {
 	char *file_name = "./test/test_cl_utils.s";
 	if((fp=fopen(file_name, "r"))==NULL){
-		printf("error\n");
+		exit(EXIT_FAILURE);
 	}
 	cl_file_set_fp(fp);
 	test_getline();

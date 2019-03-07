@@ -4,17 +4,12 @@
 
 struct Emitter emit[EMIT_SIZE];
 
-void emit_byte(struct Emitter* emitter, char onebyte){
-	emitter->array = onebyte;
-	emitter->type  = ONE_BYTE;
-}
-
-void emit_word(struct Emitter* emitter, int oneword) {
+void emit_word(struct Emitter *emitter, int oneword) {
 	emitter->array = oneword;
-	emitter->type  = ONE_WORD;
 }
 
-int assembly() {
+int assemble(char *output_name) {
+	FILE *fp;
 	int str_len;
 	char *str;
 	int code;
@@ -23,21 +18,24 @@ int assembly() {
 	int i = 0;
 	while((str_len = cl_getline(&str)) != 0){
 		code = asm_one(str);
-		if(4 == sizeof(code)) {
-			emit_word(&emit[i], code);
-		}
+		emit_word(&emit[i], code);
 		i++;
+		printf("%x\n",code);
 	}
 	
-	for(int j=0; j<i; j++) {
-		printf("%d: 0x%x\n",j,emit[j].array);
+	if((fp = fopen(output_name, "wb")) == NULL) {
+		exit(EXIT_FAILURE);
 	}
+	
+	for(int j=0; j<i; j++){
+		fwrite(&emit[j].array, sizeof(emit[j].array), 1, fp);
+	}
+	fclose(fp);
 	
 	return 0;
 }
 
 int asm_one(char *str) {
-	struct Emitter emit;
 	struct substring op;
 	int read_len;
 	int code;
@@ -73,27 +71,30 @@ int asm_mov(char *str) {
 	return mov;
 }
 
+void debug_emitter_dump() {
+	for(int i=0; i<EMIT_SIZE; i++){
+		printf("%d: %x\n",i,emit[i].array);
+	}
+}
 
-static void test_assembly() {
+
+static void test_assemble() {
 	FILE *fp = NULL;
 	char *file_name = "./test/test_cl_utils.s";
 	if((fp=fopen(file_name, "r"))==NULL){
 		printf("error\n");
 	}
 	cl_file_set_fp(fp);
-	assembly();
+	assemble("./output/test.bin");
+	fclose(fp);
 	
 	int expect[2];
-	int expect_type = ONE_WORD;
 	expect[0] = 0xe1a01002;
 	expect[1] = 0xe1a02004;
 	
 	for(int i = 0; i< 2; i++) {
-		assert_number(expect_type, emit[i].type);
 		assert_number(expect[i], emit[i].array);
 	}
-
-	fclose(fp);
 }
 
 static void test_asm_one() {
@@ -118,7 +119,7 @@ static void test_asm_mov() {
 static void unit_tests() {
 	test_asm_mov();
 	test_asm_one();
-	test_assembly();
+	test_assemble();
 }
 
 #if 0

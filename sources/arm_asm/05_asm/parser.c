@@ -1,10 +1,10 @@
 #include "asm.h"
 
-int _isdigit(int c){
+int is_valid_digit(int c){
 	return  '0' <= c && c <= '9';
 }
 
-int _isExecutable(int c){
+int is_valid_character(int c){
 	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
 }
 
@@ -17,12 +17,12 @@ int parse_one(char *str, struct substring *out_sub) {
 	single_ch = str[0];
 	
 	//先頭の空白をスキップ
-	while(!_isExecutable(single_ch) && !_isdigit(single_ch)) {
+	while(!is_valid_character(single_ch) && !is_valid_digit(single_ch)) {
 		if(single_ch == '\0') return -1;
 		i++;
 		single_ch = str[i];
 	}
-	while(_isExecutable(single_ch) || _isdigit(single_ch)) {
+	while(is_valid_character(single_ch) || is_valid_digit(single_ch)) {
 		if(single_ch == '\0') return -1;
 		length++;
 		single_ch = str[i + length];
@@ -61,7 +61,7 @@ int parse_register(char *str, int *out_register) {
 		number = number * 10 +(single_ch-'0');
 		length++;
 		single_ch = str[length];
-	}while(_isdigit(single_ch));
+	}while(is_valid_digit(single_ch));
 	
 	*out_register = number;
 	
@@ -110,7 +110,7 @@ static void test_parse_one_lower() {
 	assert_substreq(expect, actual.str, actual.len);
 }
 
-static void test_parse_one_comma() {
+static void test_parse_one_colon() {
 	char *input = " mov:  r1, r2";
 	char *expect = "mov:";
 	int expect_len = 5;
@@ -168,7 +168,7 @@ static void test_skip_comma() {
 static void unit_tests() {
 	test_parse_one_upper();
 	test_parse_one_lower();
-	test_parse_one_comma();
+	test_parse_one_colon();
 	test_parse_one_fail();
 	
 	test_parse_register();

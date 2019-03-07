@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
 			printf("error\n");
 		}
 		cl_file_set_fp(fp);
-		assembly();
+		assemble("./output/main");
 		fclose(fp);
 	}
 

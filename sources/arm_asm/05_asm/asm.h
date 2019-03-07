@@ -5,10 +5,6 @@
 
 #define PRASE_FAIL -1
 
-enum ByteType {
-	ONE_WORD,
-	ONE_BYTE
-};
 
 struct substring {
 	char *str;
@@ -17,7 +13,6 @@ struct substring {
 
 struct Emitter {
 	unsigned int array;
-	enum ByteType type;
 };
 
 void cl_file_set_fp(FILE *input_fp);
@@ -31,4 +26,4 @@ int parse_one(char *str, struct substring *out_sub);
 int parse_register(char *str, int *out_register);
 int skip_comma(char *str);
 
-int assembly();
+int assemble();
