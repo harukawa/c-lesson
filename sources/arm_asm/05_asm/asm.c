@@ -107,7 +107,7 @@ static void test_asm_one() {
 }
 
 static void test_asm_mov() {
-	char *input = "mov r1, r2";
+	char *input = "    r1, r2";
 	int input_len = 3;
 	int expect = 0xe1a01002;
 	int actual;

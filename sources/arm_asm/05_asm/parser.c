@@ -135,7 +135,7 @@ static void test_parse_one_fail() {
 }
 
 static void test_parse_register() {
-	char *input = "mov     r1, r2";
+	char *input = "        r1, r2";
 	int actual;
 	int expect_len = 7;
 	int expect = 1;
