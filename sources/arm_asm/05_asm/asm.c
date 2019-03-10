@@ -182,7 +182,7 @@ static void test_assemble_mov() {
 	assemble("./output/test.bin");
 	fclose(fp);
 	
-	int expect[8] = {0x02, 0x10, 0xa0, 0xe1, 0x04, 0x20, 0xa0, 0xe1};
+	int expect[8] = {0x02, 0x10, 0xa0, 0xe3, 0x04, 0x20, 0xa0, 0xe3};
 	
 	for(int i=0; i<emitter.pos; i++) {
 		assert_number(expect[i], emitter.buf[i]);
@@ -282,8 +282,8 @@ static void unit_tests() {
 	test_asm_raw_number();
 }
 
-#if 0
+
 int main(){
 	unit_tests();
 }
-#endif
+
