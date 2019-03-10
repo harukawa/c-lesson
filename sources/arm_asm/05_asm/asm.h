@@ -12,7 +12,8 @@ struct substring {
 };
 
 struct Emitter {
-	unsigned int array;
+	unsigned char *buf;
+	int pos;
 };
 
 void cl_file_set_fp(FILE *input_fp);
@@ -25,5 +26,10 @@ void assert_number(int expect, int actual);
 int parse_one(char *str, struct substring *out_sub);
 int parse_register(char *str, int *out_register);
 int skip_comma(char *str);
+int is_register(char *str);
+int parse_immediate(char *str, int *out_immediate);
+int skip_sbracket(char *str);
+int is_sbracket(char *str);
 
 int assemble();
+void debug_emitter_dump();

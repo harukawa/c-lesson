@@ -2,10 +2,17 @@
 
 #define EMIT_SIZE 64
 
-struct Emitter emit[EMIT_SIZE];
+struct Emitter emitter;
+static unsigned char g_byte_buf[100*1024];
 
 void emit_word(struct Emitter *emitter, int oneword) {
-	emitter->array = oneword;
+	int pos = emitter->pos;
+	int i;
+	char *buf = &oneword;
+	for(i =0; i<4; i++) {
+		emitter->buf[pos+i] = buf[i];
+	}
+	emitter->pos = pos + 4;
 }
 
 int assemble(char *output_name) {
@@ -15,23 +22,23 @@ int assemble(char *output_name) {
 	int code;
 	int pos = 0;
 	
+	emitter.buf = g_byte_buf;
+	emitter.pos = 0;
+	
 	int i = 0;
 	while((str_len = cl_getline(&str)) != 0){
 		code = asm_one(str);
-		emit_word(&emit[i], code);
+		emit_word(&emitter, code);
 		i++;
-		printf("%x\n",code);
 	}
-	
+
 	if((fp = fopen(output_name, "wb")) == NULL) {
 		exit(EXIT_FAILURE);
 	}
-	
-	for(int j=0; j<i; j++){
-		fwrite(&emit[j].array, sizeof(emit[j].array), 1, fp);
-	}
+
+	// emitter を4バイト　* i 書き込む
+	fwrite(emitter.buf, 4, i , fp);
 	fclose(fp);
-	
 	return 0;
 }
 
@@ -44,8 +51,26 @@ int asm_one(char *str) {
 	if(!strncmp("MOV", op.str, 3) || !strncmp("mov", op.str, 3)) {
 		code = asm_mov(&str[read_len]);
 		return code;
+		
+	} else if(!strncmp("LDR", op.str, 3) || !strncmp("ldr", op.str, 3)) {
+		code = asm_ldr(&str[read_len]);
+		return code;
+	} else if(!strncmp("STR", op.str, 3) || !strncmp("str", op.str, 3)) {
+		code = asm_str(&str[read_len]);
+		return code;
+	} else if(!strncmp(".raw", op.str, 4)) {
+		code = asm_raw(&str[read_len]);
+		return code;
 	}
 	return 0;	
+}
+
+int asm_raw(char *str) {
+	int embedded,tmp;
+	int len = 0;
+	tmp = parse_raw(&str[len], &embedded);
+	int code = 0x0 + embedded;
+	return code;
 }
 
 int asm_mov(char *str) {
@@ -60,7 +85,12 @@ int asm_mov(char *str) {
 	len += tmp;
 	tmp = skip_comma(&str[len]);
 	if(0 >= tmp) return 0;
-	tmp = parse_register(&str[len], &operand);
+	len += tmp;
+	if(is_register(&str[len])) {
+		tmp = parse_register(&str[len], &operand);
+	} else {
+		tmp = parse_immediate(&str[len], &operand);
+	}
 	
 	int mov = 0xe1a00000;
 	rd = 0x0 + rd;
@@ -71,14 +101,79 @@ int asm_mov(char *str) {
 	return mov;
 }
 
+int asm_common_str_ldr(char *str, int *out_rn, int *out_rd, int *out_offset) {
+	// Data processing P42 STR LDR 
+	// rn       0x000f0000
+	// rd       0x0000f000
+	// offset   0x00000fff
+	int rn,rd,offset = 0x0;
+	int len = 0, tmp;
+	
+	tmp = parse_register(&str[len], &rd);
+	if(0 >= tmp) return 0;
+	len += tmp;
+	tmp = skip_comma(&str[len]);
+	if(0 >= tmp) return 0;
+	len += tmp;
+	
+	if(is_sbracket(&str[len])) {
+		tmp = skip_sbracket(&str[len]);
+		len += tmp;
+		tmp = parse_register(&str[len], &rn);
+		if(0 >= tmp) return 0;
+		len += tmp;
+	}
+	if(!is_sbracket(&str[len])) {
+		tmp = skip_comma(&str[len]);
+		if(0 >= tmp) return 0;
+		len += tmp;
+		tmp = parse_immediate(&str[len], &offset);
+	}
+	
+	rn = 0x0 + rn;
+	rn = rn << 16;
+	*out_rn = rn;
+	rd = 0x0 + rd;
+	rd = rd << 12;
+	*out_rd = rd;
+	*out_offset = offset;
+	
+	return 1;
+}
+
+int asm_str(char *str) {
+	int rn,rd, offset;
+	asm_common_str_ldr(str, &rn, &rd, &offset);
+	int str_code = 0xe5800000;
+	
+	str_code += rn;
+	str_code += rd;
+	str_code += offset;
+	return str_code;
+}
+
+int asm_ldr(char *str) {
+	int rn,rd, offset;
+	asm_common_str_ldr(str, &rn, &rd, &offset);
+	int ldr = 0xe5900000;
+	
+	ldr += rn;
+	ldr += rd;
+	ldr += offset;
+	return ldr;
+}
+
 void debug_emitter_dump() {
-	for(int i=0; i<EMIT_SIZE; i++){
-		printf("%d: %x\n",i,emit[i].array);
+	int j = 1;
+	for(int i = 0; i< emitter.pos; i = i+4) {
+		printf("%d %02x%02x%02x%02x\n",j,emitter.buf[i+3],emitter.buf[i+2],
+			emitter.buf[i+1],emitter.buf[i]);
+		j++;
 	}
 }
 
 
-static void test_assemble() {
+static void test_assemble_mov() {
 	FILE *fp = NULL;
 	char *file_name = "./test/test_cl_utils.s";
 	if((fp=fopen(file_name, "r"))==NULL){
@@ -88,12 +183,10 @@ static void test_assemble() {
 	assemble("./output/test.bin");
 	fclose(fp);
 	
-	int expect[2];
-	expect[0] = 0xe1a01002;
-	expect[1] = 0xe1a02004;
+	int expect[8] = {0x02, 0x10, 0xa0, 0xe1, 0x04, 0x20, 0xa0, 0xe1};
 	
-	for(int i = 0; i< 2; i++) {
-		assert_number(expect[i], emit[i].array);
+	for(int i=0; i<emitter.pos; i++) {
+		assert_number(expect[i], emitter.buf[i]);
 	}
 }
 
@@ -108,7 +201,7 @@ static void test_asm_one() {
 
 static void test_asm_mov() {
 	char *input = "    r1, r2";
-	int input_len = 3;
+	int input_len = 0;
 	int expect = 0xe1a01002;
 	int actual;
 	
@@ -116,10 +209,78 @@ static void test_asm_mov() {
 	assert_number(expect, actual);
 }
 
+
+static void test_asm_mov_immediate() {
+	char *input = "    r1, #0x64";
+	int input_len = 0;
+	int expect = 0xe1a01064;
+	int actual;
+	
+	actual = asm_mov(&input[input_len]);
+	assert_number(expect, actual);
+}
+
+static void test_asm_ldr_immediate() {
+	char *input = "    r0, [r15, #0x30]";
+	int input_len = 0;
+	int expect = 0xe59f0030;
+	int actual;
+	
+	actual = asm_ldr(&input[input_len]);
+	assert_number(expect, actual);
+}
+
+static void test_asm_ldr() {
+	char *input = "    r1, [r14]";
+	int input_len = 0;
+	int expect = 0xe59e1000;
+	int actual;
+	
+	actual = asm_ldr(&input[input_len]);
+	assert_number(expect, actual);
+}
+
+static void test_asm_str_immediate() {
+	char *input = "    r0, [r15, #0x30]";
+	int input_len = 0;
+	int expect = 0xe58f0030;
+	int actual;
+	
+	actual = asm_str(&input[input_len]);
+	assert_number(expect, actual);
+}
+
+static void test_asm_str() {
+	char *input = "    r1, [r14]";
+	int input_len = 0;
+	int expect = 0xe58e1000;
+	int actual;
+	
+	actual = asm_str(&input[input_len]);
+	assert_number(expect, actual);
+}
+
+
+static void test_asm_raw_number() {
+	char *input = "  0x12345678";
+	int input_len = 0;
+	int expect = 0x12345678;
+	int actual;
+	
+	actual = asm_raw(&input[input_len]);
+	assert_number(expect, actual);
+}
+
 static void unit_tests() {
 	test_asm_mov();
+	test_asm_mov_immediate();
 	test_asm_one();
-	test_assemble();
+	test_assemble_mov();
+	test_asm_ldr_immediate();
+	test_asm_ldr();
+	test_asm_str_immediate();
+	test_asm_str();
+	test_asm_raw_number();
 }
 
 #if 0
