@@ -91,8 +91,7 @@ int asm_mov(char *str) {
 	} else {
 		tmp = parse_immediate(&str[len], &operand);
 	}
-	
-	int mov = 0xe1a00000;
+	int mov = 0xe3a00000;
 	rd = 0x0 + rd;
 	rd = rd << 12;
 	mov += rd;
@@ -192,7 +191,7 @@ static void test_assemble_mov() {
 
 static void test_asm_one() {
 	char *input = "mov r1, r2";
-	int expect = 0xe1a01002;
+	int expect = 0xe3a01002;
 	
 	int actual = asm_one(input);
 	
@@ -202,7 +201,7 @@ static void test_asm_one() {
 static void test_asm_mov() {
 	char *input = "    r1, r2";
 	int input_len = 0;
-	int expect = 0xe1a01002;
+	int expect = 0xe3a01002;
 	int actual;
 	
 	actual = asm_mov(&input[input_len]);
@@ -213,7 +212,7 @@ static void test_asm_mov() {
 static void test_asm_mov_immediate() {
 	char *input = "    r1, #0x64";
 	int input_len = 0;
-	int expect = 0xe1a01064;
+	int expect = 0xe3a01064;
 	int actual;
 	
 	actual = asm_mov(&input[input_len]);
