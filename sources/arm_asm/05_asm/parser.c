@@ -140,17 +140,19 @@ int parse_immediate(char *str, int *out_immediate) {
 		}
 		length++;
 		digit++;
+		if(0 == (single_ch - '0') && 1 == digit) {
+				digit = 0;
+		}
 		single_ch = str[length];
 	}while(is_valid_hexdigit(single_ch));
 	
 	if(minus) {
-		int m = 0xf;
+		int m = 0x0;
 		for(int i=0; i<digit; i++) {
 			m = m * 16 + 0xf;
 		}
 		number = ~number + 0x1;
 		number = number & m;
-		printf("aaa\n");
 	}
 	
 	*out_immediate = number;
@@ -168,13 +170,13 @@ int parse_raw(char *str, int *out_embedded) {
 		length++;
 		single_ch = str[length];
 	}
-
-	if('0' == single_ch) {
-		single_ch = str[length-1];
-		if(single_ch == '-') {
+	if(single_ch == '-') {
 			length++;
 			minus = 1;
-		}
+			single_ch = str[length];
+	}
+	if('0' == single_ch) {
+		single_ch = str[length-1];
 		length = length + 2;
 		single_ch = str[length];
 
@@ -190,19 +192,19 @@ int parse_raw(char *str, int *out_embedded) {
 			}
 			length++;
 			digit++;
+			if(0 == (single_ch - '0') && 1 == digit) {
+				digit = 0;
+			}
 			single_ch = str[length];
 		}while(is_valid_hexdigit(single_ch));
-		
 		if(minus) {
-			int m = 0xf;
+			int m = 0x0;
 			for(int i=0; i<digit; i++) {
 				m = m * 16 + 0xf;
 			}
 			number = ~number + 0x1;
 			number = number & m;
-			printf("aaa\n");
 		}
-		
 		*out_embedded = number;
 	} else {
 		//後で文字のケースを追加
@@ -333,6 +335,18 @@ static void test_parse_immediate() {
 	assert_number(expect, actual);
 }
 
+static void test_parse_immediate_minus() {
+	char *input = "  #-0x64";
+	int actual;
+	int expect_len = 8;
+	int expect = 0x9c;
+
+	int actual_len = parse_immediate(&input[0], &actual);
+
+	assert_number(expect_len, actual_len);
+	assert_number(expect, actual);
+}
+
 static void test_parse_immediate_fail() {
 	char *input = "   #0x";
 	int actual;
@@ -372,6 +386,26 @@ static void test_skip_sbracket() {
 	assert_number(expect, actual);
 }
 
+static void test_parse_raw_immediate() {
+	char *input = "  0x64";
+	int actual;
+	int expect = 0x64;
+
+	int actual_len = parse_raw(&input[0], &actual);
+
+	assert_number(expect, actual);
+}
+
+static void test_parse_raw_immediate_minus() {
+	char *input = "  -0x064";
+	int actual;
+	int expect = 0x9c;
+
+	int actual_len = parse_raw(&input[0], &actual);
+
+	assert_number(expect, actual);
+}
+
 static void unit_tests() {
 	test_parse_one_upper();
 	test_parse_one_lower();
@@ -388,11 +422,13 @@ static void unit_tests() {
 	test_skip_comma();
 	test_is_sbracket();
 	test_skip_sbracket();
+	
+	test_parse_immediate_minus();
+	test_parse_raw_immediate();
+	test_parse_raw_immediate_minus();
 }
 
-#if 0
 int main(){
 	unit_tests();
 	return 0;
 }
-#endif
