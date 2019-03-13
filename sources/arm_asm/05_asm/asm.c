@@ -93,7 +93,6 @@ int asm_mov(char *str) {
 		tmp = parse_immediate(&str[len], &operand);
 	}
 	int mov = 0xe3a00000;
-	rd = 0x0 + rd;
 	rd = rd << 12;
 	mov += rd;
 	mov += operand;
@@ -130,10 +129,8 @@ int asm_common_str_ldr(char *str, int *out_rn, int *out_rd, int *out_offset) {
 		tmp = parse_immediate(&str[len], &offset);
 	}
 	
-	rn = 0x0 + rn;
 	rn = rn << 16;
 	*out_rn = rn;
-	rd = 0x0 + rd;
 	rd = rd << 12;
 	*out_rd = rd;
 	*out_offset = offset;
@@ -277,8 +274,7 @@ static void unit_tests() {
 	test_asm_raw_number();
 }
 
-#if 0 
 int main(){
 	unit_tests();
 }
-#endif
+
