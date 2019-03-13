@@ -25,19 +25,21 @@ int assemble(char *output_name) {
 	emitter.buf = g_byte_buf;
 	emitter.pos = 0;
 	
-	int i = 0;
+	int count = 0;
 	while((str_len = cl_getline(&str)) != 0){
 		code = asm_one(str);
 		emit_word(&emitter, code);
-		i++;
+		count++;
 	}
 
 	if((fp = fopen(output_name, "wb")) == NULL) {
+		fprintf(stderr, "エラー: ファイルがオープンできません: %s\n", output_name);
 		exit(EXIT_FAILURE);
 	}
 
-	// emitter を4バイト　* i 書き込む
-	fwrite(emitter.buf, 4, i , fp);
+	for(int i = 0; i< emitter.pos; i++) {
+		fwrite(&emitter.buf[i], sizeof(emitter.buf[i]),1, fp);
+	}
 	fclose(fp);
 	return 0;
 }
@@ -69,8 +71,7 @@ int asm_raw(char *str) {
 	int embedded,tmp;
 	int len = 0;
 	tmp = parse_raw(&str[len], &embedded);
-	int code = 0x0 + embedded;
-	return code;
+	return embedded;
 }
 
 int asm_mov(char *str) {
@@ -176,7 +177,8 @@ static void test_assemble_mov() {
 	FILE *fp = NULL;
 	char *file_name = "./test/test_cl_utils.s";
 	if((fp=fopen(file_name, "r"))==NULL){
-		printf("error\n");
+		fprintf(stderr, "エラー: ファイルがオープンできません: %s\n", file_name);
+		exit(EXIT_FAILURE);
 	}
 	cl_file_set_fp(fp);
 	assemble("./output/test.bin");
@@ -200,73 +202,66 @@ static void test_asm_one() {
 
 static void test_asm_mov() {
 	char *input = "    r1, r2";
-	int input_len = 0;
 	int expect = 0xe3a01002;
 	int actual;
 	
-	actual = asm_mov(&input[input_len]);
+	actual = asm_mov(input);
 	assert_number(expect, actual);
 }
 
 
 static void test_asm_mov_immediate() {
 	char *input = "    r1, #0x64";
-	int input_len = 0;
 	int expect = 0xe3a01064;
 	int actual;
 	
-	actual = asm_mov(&input[input_len]);
+	actual = asm_mov(input);
 	assert_number(expect, actual);
 }
 
 static void test_asm_ldr_immediate() {
 	char *input = "    r0, [r15, #0x30]";
-	int input_len = 0;
 	int expect = 0xe59f0030;
 	int actual;
 	
-	actual = asm_ldr(&input[input_len]);
+	actual = asm_ldr(input);
 	assert_number(expect, actual);
 }
 
 static void test_asm_ldr() {
 	char *input = "    r1, [r14]";
-	int input_len = 0;
 	int expect = 0xe59e1000;
 	int actual;
 	
-	actual = asm_ldr(&input[input_len]);
+	actual = asm_ldr(input);
 	assert_number(expect, actual);
 }
 
 static void test_asm_str_immediate() {
 	char *input = "    r0, [r15, #0x30]";
-	int input_len = 0;
 	int expect = 0xe58f0030;
 	int actual;
 	
-	actual = asm_str(&input[input_len]);
+	actual = asm_str(input);
 	assert_number(expect, actual);
 }
 
 static void test_asm_str() {
 	char *input = "    r1, [r14]";
-	int input_len = 0;
 	int expect = 0xe58e1000;
 	int actual;
 	
-	actual = asm_str(&input[input_len]);
+	actual = asm_str(input);
 	assert_number(expect, actual);
 }
 
 
 static void test_asm_raw_number() {
 	char *input = "  0x12345678";
-	int input_len = 0;
 	int expect = 0x12345678;
 	int actual;
 	
-	actual = asm_raw(&input[input_len]);
+	actual = asm_raw(input);
 	assert_number(expect, actual);
 }
 
@@ -282,8 +277,8 @@ static void unit_tests() {
 	test_asm_raw_number();
 }
 
-
+#if 0 
 int main(){
 	unit_tests();
 }
-
+#endif

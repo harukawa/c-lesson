@@ -298,7 +298,7 @@ static void test_parse_register() {
 	int expect_len = 7;
 	int expect = 1;
 
-	int actual_len = parse_register(&input[0], &actual);
+	int actual_len = parse_register(input, &actual);
 
 	assert_number(expect_len, actual_len);
 	assert_number(expect, actual);
@@ -329,7 +329,7 @@ static void test_parse_immediate() {
 	int expect_len = 7;
 	int expect = 0x64;
 
-	int actual_len = parse_immediate(&input[0], &actual);
+	int actual_len = parse_immediate(input, &actual);
 
 	assert_number(expect_len, actual_len);
 	assert_number(expect, actual);
@@ -341,7 +341,7 @@ static void test_parse_immediate_minus() {
 	int expect_len = 8;
 	int expect = 0x9c;
 
-	int actual_len = parse_immediate(&input[0], &actual);
+	int actual_len = parse_immediate(input, &actual);
 
 	assert_number(expect_len, actual_len);
 	assert_number(expect, actual);
@@ -352,7 +352,7 @@ static void test_parse_immediate_fail() {
 	int actual;
 	int expect = -1;
 
-	int actual_len = parse_immediate(&input[0], &actual);
+	int actual_len = parse_immediate(input, &actual);
 
 	assert_number(expect, actual_len);
 }
@@ -362,7 +362,7 @@ static void test_is_register() {
 	int actual;
 	int expect = 1;
 
-	int actual_len = is_register(&input[0]);
+	int actual_len = is_register(input);
 
 	assert_number(expect, actual_len);
 }
@@ -372,7 +372,7 @@ static void test_is_sbracket() {
 	int actual;
 	int expect = 1;
 
-	int actual_len = is_sbracket(&input[0]);
+	int actual_len = is_sbracket(input);
 	
 	assert_number(expect, actual_len);
 }
@@ -381,7 +381,7 @@ static void test_skip_sbracket() {
 	char *input = "   [r1, r2]";
 	int expect = 4;
 
-	int actual = skip_sbracket(&input[0]);
+	int actual = skip_sbracket(input);
 
 	assert_number(expect, actual);
 }
@@ -391,7 +391,7 @@ static void test_parse_raw_immediate() {
 	int actual;
 	int expect = 0x64;
 
-	int actual_len = parse_raw(&input[0], &actual);
+	int actual_len = parse_raw(input, &actual);
 
 	assert_number(expect, actual);
 }
@@ -401,7 +401,7 @@ static void test_parse_raw_immediate_minus() {
 	int actual;
 	int expect = 0x9c;
 
-	int actual_len = parse_raw(&input[0], &actual);
+	int actual_len = parse_raw(input, &actual);
 
 	assert_number(expect, actual);
 }
@@ -427,8 +427,9 @@ static void unit_tests() {
 	test_parse_raw_immediate();
 	test_parse_raw_immediate_minus();
 }
-
+#if 0
 int main(){
 	unit_tests();
 	return 0;
 }
+#endif
