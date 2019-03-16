@@ -49,13 +49,9 @@ int asm_one(char *str) {
 	int read_len;
 	int code;
 	int mnemonic;
-	char *tmp;
 	read_len = parse_one(str, &op);
 	
-	tmp = malloc(op.len);
-	memcpy(tmp, op.str, op.len);
-	mnemonic = to_mnemonic_symbol(tmp);
-	printf("%s\n",tmp);
+	mnemonic = to_mnemonic_symbol(str, op.len);
 
 	//MOV
 	if(mov == mnemonic || MOV == mnemonic) {
@@ -285,8 +281,8 @@ static void unit_tests() {
 	test_asm_str();
 	test_asm_raw_number();
 }
-
+#if 0
 int main(){
 	unit_tests();
 }
-
+#endif

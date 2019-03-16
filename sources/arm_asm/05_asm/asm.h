@@ -41,7 +41,7 @@ int skip_sbracket(char *str);
 int is_sbracket(char *str);
 
 void setup_mnemonic();
-int to_mnemonic_symbol(char *str);
+int to_mnemonic_symbol(char *str, int len);
 
 int assemble();
 void debug_emitter_dump();
