@@ -32,20 +32,17 @@ int search_name_tree(char *str, struct Node *node) {
 	}
 }
 
-int add_name_tree(char *str, struct Node *node, int value) {
+int add_name_tree(char **str, struct Node *node, int value) {
 	int i = strcmp(str, node->name);
 	if(i == 0) {
 		return node->value;
 	} else if(i >= 1){
-		if(NULL == node->right) {
-			char *tmp;
-			int mem_size = strlen(str) + 1;
-			tmp = malloc(mem_size);
-			memcpy(tmp, str, mem_size);
-			
+		if(NULL == node->right) {			
 			struct Node *right_node =malloc(sizeof(struct Node));
-			right_node->name = tmp;
+			right_node->name = str;
 			right_node->value = value;
+			right_node->left = NULL;
+			right_node->right = NULL;
 			node->right = right_node;
 			return right_node->value;
 		} else {
@@ -53,14 +50,11 @@ int add_name_tree(char *str, struct Node *node, int value) {
 		}
 	} else if(i <= -1){
 		if(NULL == node->left) {
-			char *tmp;
-			int mem_size = strlen(str) + 1;
-			tmp = malloc(mem_size);
-			memcpy(tmp, str, mem_size);
-			
 			struct Node *left_node = malloc(sizeof(struct Node));
-			left_node->name = tmp;
+			left_node->name = str;
 			left_node->value = value;
+			left_node->left = NULL;
+			left_node->right = NULL;
 			node->left = left_node;
 			return left_node->value;
 		} else {
@@ -111,13 +105,13 @@ static void init() {
 
 void setup_mnemonic() {
 	init();
-	mnemonics_list[0] = to_mnemonic_symbol(".raw");
-	mnemonics_list[1] = to_mnemonic_symbol("mov");
-	mnemonics_list[2] = to_mnemonic_symbol("MOV");
-	mnemonics_list[3] = to_mnemonic_symbol("ldr");
-	mnemonics_list[4] = to_mnemonic_symbol("LDR");
-	mnemonics_list[5] = to_mnemonic_symbol("str");
-	mnemonics_list[6] = to_mnemonic_symbol("STR");
+	raw = to_mnemonic_symbol(".raw");
+	mov = to_mnemonic_symbol("mov");
+	MOV = to_mnemonic_symbol("MOV");
+	ldr = to_mnemonic_symbol("ldr");
+	LDR = to_mnemonic_symbol("LDR");
+	str = to_mnemonic_symbol("str");
+	STR = to_mnemonic_symbol("STR");
 	
 }
 
@@ -217,6 +211,8 @@ static void unit_test() {
 	test_search_value_tree_fail();
 }
 
+#if 0
 int main(int argc, char *argv[]) {
 	unit_test();
 }
+#endif;

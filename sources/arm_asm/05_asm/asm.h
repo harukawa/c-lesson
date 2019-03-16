@@ -5,6 +5,13 @@
 
 #define PARSE_FAIL -1
 
+int mov;
+int MOV;
+int ldr;
+int LDR;
+int str;
+int STR;
+int raw;
 
 struct substring {
 	char *str;

@@ -58,20 +58,20 @@ int asm_one(char *str) {
 	printf("%s\n",tmp);
 
 	//MOV
-	if(mnemonics_list[1] == mnemonic || mnemonics_list[2] == mnemonic) {
+	if(mov == mnemonic || MOV == mnemonic) {
 		code = asm_mov(&str[read_len]);
 		return code;
 		
 	//LDR
-	} else if(mnemonics_list[3] == mnemonic || mnemonics_list[4] == mnemonic) {
+	} else if(ldr == mnemonic || LDR == mnemonic) {
 		code = asm_ldr(&str[read_len]);
 		return code;
-	//STE
-	} else if(mnemonics_list[5] == mnemonic || mnemonics_list[6] == mnemonic) {
+	//STR
+	} else if(str == mnemonic || STR == mnemonic) {
 		code = asm_str(&str[read_len]);
 		return code;
 	//.raw
-	} else if(mnemonics_list[0] == mnemonic) {
+	} else if(raw == mnemonic) {
 		code = asm_raw(&str[read_len]);
 		return code;
 	}
@@ -274,7 +274,7 @@ static void test_asm_raw_number() {
 }
 
 static void unit_tests() {
-	void setup_mnemonic();
+	setup_mnemonic();
 	test_asm_mov();
 	test_asm_mov_immediate();
 	test_asm_one();
@@ -285,8 +285,8 @@ static void unit_tests() {
 	test_asm_str();
 	test_asm_raw_number();
 }
-#if 0
+
 int main(){
 	unit_tests();
 }
-#endif
+
