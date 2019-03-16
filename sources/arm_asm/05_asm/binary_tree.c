@@ -69,22 +69,22 @@ int add_name_tree(char *str, struct Node *node, int value) {
 	}
 }
 
-int search_value_tree(int value, struct Node *node) {
-	/*if(value == node->value) {
-		return node->value;
-	} else if(value > node->value){
-		if(NULL == node->right) {
-			return -1;
-		} else {
-			return search_value_tree(value, node->right);
+int search_value_tree(int value, struct Node *node, char **out_name) {
+	if(value == node->value) {
+		*out_name = node->name;
+		return 1;
+	} else {
+		int result = -1;
+		char *output = "";
+		if(NULL != node->left) {
+			result = search_value_tree(value, node->left, &output);
 		}
-	} else if(value < node->value){
-		if(NULL == node->left) {
-			return -1;
-		} else {
-			return search_value_tree(value, node->left);
+		if(-1 == result && NULL != node->right) {
+			result = search_value_tree(value, node->right, &output);
 		}
-	}*/
+		*out_name = output;
+		return result;
+	}
 }
 
 
@@ -123,20 +123,17 @@ void setup_mnemonic() {
 
 static void test_three_mnemonic_search() {
 	init();
-	char *input_mov = "mov";
-	char *input_str = "str";
-	char *input_ldr = "ldr";
 	int expect_mov = 2;
 	int expect_str = 3;
 	int expect_ldr = 4;
 	int actual_mov, actual_str, actual_ldr;
 	
-	to_mnemonic_symbol(input_mov);
-	to_mnemonic_symbol(input_str);
-	to_mnemonic_symbol(input_ldr);
-	actual_mov = search_name_tree(input_mov, &mnemonic_root);
-	actual_str = search_name_tree(input_str, &mnemonic_root);
-	actual_ldr = search_name_tree(input_ldr, &mnemonic_root);
+	to_mnemonic_symbol("mov");
+	to_mnemonic_symbol("str");
+	to_mnemonic_symbol("ldr");
+	actual_mov = search_name_tree("mov", &mnemonic_root);
+	actual_str = search_name_tree("str", &mnemonic_root);
+	actual_ldr = search_name_tree("ldr", &mnemonic_root);
 	
 	assert_number(expect_mov, actual_mov);
 	assert_number(expect_str, actual_str);
@@ -145,20 +142,17 @@ static void test_three_mnemonic_search() {
 
 static void test_three_mnemonic_add() {
 	init();
-	char *input_mov = "mov";
-	char *input_str = "str";
-	char *input_ldr = "ldr";
 	int expect_mov = 2;
 	int expect_str = 3;
 	int expect_ldr = 4;
 	int actual_mov, actual_str, actual_ldr;
 	
-	to_mnemonic_symbol(input_mov);
-	to_mnemonic_symbol(input_str);
-	to_mnemonic_symbol(input_ldr);
-	actual_mov = add_name_tree(input_mov, &mnemonic_root, mnemonic_id);
-	actual_str = add_name_tree(input_str, &mnemonic_root, mnemonic_id);
-	actual_ldr = add_name_tree(input_ldr, &mnemonic_root, mnemonic_id);
+	to_mnemonic_symbol("mov");
+	to_mnemonic_symbol("str");
+	to_mnemonic_symbol("ldr");
+	actual_mov = add_name_tree("mov", &mnemonic_root, mnemonic_id);
+	actual_str = add_name_tree("str", &mnemonic_root, mnemonic_id);
+	actual_ldr = add_name_tree("ldr", &mnemonic_root, mnemonic_id);
 	
 	assert_number(expect_mov, actual_mov);
 	assert_number(expect_str, actual_str);
@@ -167,24 +161,51 @@ static void test_three_mnemonic_add() {
 
 static void test_three_mnemonic_to_symbol() {
 	init();
-	char *input_mov = "mov";
-	char *input_str = "str";
-	char *input_ldr = "ldr";
 	int expect_mov = 2;
 	int expect_str = 3;
 	int expect_ldr = 4;
 	int actual_mov, actual_str, actual_ldr;
 	
-	to_mnemonic_symbol(input_mov);
-	to_mnemonic_symbol(input_str);
-	to_mnemonic_symbol(input_ldr);
-	actual_mov = to_mnemonic_symbol(input_mov);
-	actual_str = to_mnemonic_symbol(input_str);
-	actual_ldr = to_mnemonic_symbol(input_ldr);
+	to_mnemonic_symbol("mov");
+	to_mnemonic_symbol("str");
+	to_mnemonic_symbol("ldr");
+	actual_mov = to_mnemonic_symbol("mov");
+	actual_str = to_mnemonic_symbol("str");
+	actual_ldr = to_mnemonic_symbol("ldr");
 	
 	assert_number(expect_mov, actual_mov);
 	assert_number(expect_str, actual_str);
 	assert_number(expect_ldr, actual_ldr);
+}
+
+static void test_search_value_tree() {
+	init();
+	char *expect_mov = "mov";
+	char *expect_str = "str";
+	char *actual_mov;
+	char *actual_str;
+	
+	int input_mov = to_mnemonic_symbol("mov");
+	int input_str = to_mnemonic_symbol("str");
+	
+	search_value_tree(input_mov,  &mnemonic_root, &actual_mov);
+	search_value_tree(input_str,  &mnemonic_root, &actual_str);
+
+	assert_streq(expect_mov, actual_mov);
+	assert_streq(expect_str, actual_str);
+}
+
+static void test_search_value_tree_fail() {
+	init();
+	char *input_str;
+	int expect = -1;
+	char *actual;
+	
+	to_mnemonic_symbol("mov");
+	to_mnemonic_symbol("str");
+	
+	actual = search_value_tree(-1, &mnemonic_root, &input_str);
+	assert_number(expect, actual);
 }
 
 static void unit_test() {
@@ -192,9 +213,10 @@ static void unit_test() {
 	test_three_mnemonic_search();
 	test_three_mnemonic_add();
 	test_three_mnemonic_to_symbol();
+	test_search_value_tree();
+	test_search_value_tree_fail();
 }
-#if 0
+
 int main(int argc, char *argv[]) {
 	unit_test();
 }
-#endif
