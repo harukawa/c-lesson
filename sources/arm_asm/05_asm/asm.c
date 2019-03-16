@@ -48,19 +48,30 @@ int asm_one(char *str) {
 	struct substring op;
 	int read_len;
 	int code;
-	
+	int mnemonic;
+	char *tmp;
 	read_len = parse_one(str, &op);
-	if(!strncmp("MOV", op.str, 3) || !strncmp("mov", op.str, 3)) {
+	
+	tmp = malloc(op.len);
+	memcpy(tmp, op.str, op.len);
+	mnemonic = to_mnemonic_symbol(tmp);
+	printf("%s\n",tmp);
+
+	//MOV
+	if(mnemonics_list[1] == mnemonic || mnemonics_list[2] == mnemonic) {
 		code = asm_mov(&str[read_len]);
 		return code;
 		
-	} else if(!strncmp("LDR", op.str, 3) || !strncmp("ldr", op.str, 3)) {
+	//LDR
+	} else if(mnemonics_list[3] == mnemonic || mnemonics_list[4] == mnemonic) {
 		code = asm_ldr(&str[read_len]);
 		return code;
-	} else if(!strncmp("STR", op.str, 3) || !strncmp("str", op.str, 3)) {
+	//STE
+	} else if(mnemonics_list[5] == mnemonic || mnemonics_list[6] == mnemonic) {
 		code = asm_str(&str[read_len]);
 		return code;
-	} else if(!strncmp(".raw", op.str, 4)) {
+	//.raw
+	} else if(mnemonics_list[0] == mnemonic) {
 		code = asm_raw(&str[read_len]);
 		return code;
 	}
@@ -263,6 +274,7 @@ static void test_asm_raw_number() {
 }
 
 static void unit_tests() {
+	void setup_mnemonic();
 	test_asm_mov();
 	test_asm_mov_immediate();
 	test_asm_one();
@@ -273,8 +285,8 @@ static void unit_tests() {
 	test_asm_str();
 	test_asm_raw_number();
 }
-
+#if 0
 int main(){
 	unit_tests();
 }
-
+#endif

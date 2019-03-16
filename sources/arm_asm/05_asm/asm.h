@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define PRASE_FAIL -1
+#define PARSE_FAIL -1
 
 
 struct substring {
@@ -15,6 +15,8 @@ struct Emitter {
 	unsigned char *buf;
 	int pos;
 };
+
+int mnemonics_list[124];
 
 void cl_file_set_fp(FILE *input_fp);
 int cl_getline(char **out_buf);
@@ -30,6 +32,9 @@ int is_register(char *str);
 int parse_immediate(char *str, int *out_immediate);
 int skip_sbracket(char *str);
 int is_sbracket(char *str);
+
+void setup_mnemonic();
+int to_mnemonic_symbol(char *str);
 
 int assemble();
 void debug_emitter_dump();
