@@ -47,7 +47,6 @@ int assemble(char *output_name) {
 int asm_one(char *str) {
 	struct substring op;
 	int read_len;
-	int code;
 	read_len = parse_one(str, &op);
 	
 	//case of label
