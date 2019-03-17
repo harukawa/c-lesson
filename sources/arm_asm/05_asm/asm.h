@@ -5,13 +5,13 @@
 
 #define PARSE_FAIL -1
 
-int mov;
-int MOV;
-int ldr;
-int LDR;
-int str;
-int STR;
-int raw;
+int g_mov;
+int g_MOV;
+int g_ldr;
+int g_LDR;
+int g_str;
+int g_STR;
+int g_raw;
 
 struct substring {
 	char *str;
@@ -21,6 +21,11 @@ struct substring {
 struct Emitter {
 	unsigned char *buf;
 	int pos;
+};
+
+struct KeyValue {
+	int key;
+	int value;
 };
 
 int mnemonics_list[124];
@@ -42,6 +47,7 @@ int is_sbracket(char *str);
 
 void setup_mnemonic();
 int to_mnemonic_symbol(char *str, int len);
+int to_label_symbol(char *str, int len);
 
 int assemble();
 void debug_emitter_dump();

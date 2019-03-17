@@ -48,28 +48,29 @@ int asm_one(char *str) {
 	struct substring op;
 	int read_len;
 	int code;
-	int mnemonic;
 	read_len = parse_one(str, &op);
 	
-	mnemonic = to_mnemonic_symbol(str, op.len);
+	//case of label
+	if(":" == str[op.len-1]) {
+		int label;
+		label = to_label_symbol(op.str, op.len);
 
-	//MOV
-	if(mov == mnemonic || MOV == mnemonic) {
-		code = asm_mov(&str[read_len]);
-		return code;
-		
-	//LDR
-	} else if(ldr == mnemonic || LDR == mnemonic) {
-		code = asm_ldr(&str[read_len]);
-		return code;
-	//STR
-	} else if(str == mnemonic || STR == mnemonic) {
-		code = asm_str(&str[read_len]);
-		return code;
-	//.raw
-	} else if(raw == mnemonic) {
-		code = asm_raw(&str[read_len]);
-		return code;
+	//case of mnemonic
+	} else {
+		int mnemonic;
+		mnemonic = to_mnemonic_symbol(op.str, op.len);
+		if(g_mov == mnemonic || g_MOV == mnemonic) {
+			return asm_mov(&str[read_len]);
+			
+		} else if(g_ldr == mnemonic || g_LDR == mnemonic) {
+			return asm_ldr(&str[read_len]);
+			
+		} else if(g_str == mnemonic || g_STR == mnemonic) {
+			return asm_str(&str[read_len]);
+			
+		} else if(g_raw == mnemonic) {
+			return asm_raw(&str[read_len]);
+		}
 	}
 	return 0;	
 }
@@ -204,6 +205,15 @@ static void test_asm_one() {
 	assert_number(expect, actual);	
 }
 
+static void test_asm_one_space() {
+	char *input = "    mov r1, r2";
+	int expect = 0xe3a01002;
+	
+	int actual = asm_one(input);
+	
+	assert_number(expect, actual);	
+}
+
 static void test_asm_mov() {
 	char *input = "    r1, r2";
 	int expect = 0xe3a01002;
@@ -274,6 +284,7 @@ static void unit_tests() {
 	test_asm_mov();
 	test_asm_mov_immediate();
 	test_asm_one();
+	test_asm_one_space();
 	test_assemble_mov();
 	test_asm_ldr_immediate();
 	test_asm_ldr();
