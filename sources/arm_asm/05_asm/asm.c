@@ -106,7 +106,7 @@ int asm_one(char *str) {
 		} else if(g_raw == mnemonic) {
 			return asm_raw(&str[read_len]);
 		} else if(g_b == mnemonic || g_B == mnemonic) {
-			return asm_b(&str[read_len]);
+			return asm_b(&str[read_len], &emitter);
 		}
 	}
 	return 0;	
@@ -119,7 +119,7 @@ int asm_raw(char *str) {
 	return embedded;
 }
 
-int asm_b(char *str) {
+int asm_b(char *str, struct Emitter *emitter) {
 	// Data processing P27 b
 	// offset  0x00ffffff
 	int read_len, label;
@@ -131,7 +131,7 @@ int asm_b(char *str) {
 
 	struct List *list;
 	list = malloc(sizeof(list));
-	list->emitter_pos = emitter.pos;
+	list->emitter_pos = emitter->pos;
 	list->label = label;
 	list->code = b;
 	list_put(list);
@@ -359,7 +359,7 @@ static void test_asm_b() {
 
 	struct List actual_list;
 	
-	int actual = asm_b(input);
+	int actual = asm_b(input, &emitter);
 	list_get(&actual_list);
 	label = to_label_symbol("label", 5);
 	
@@ -405,8 +405,8 @@ static void unit_tests() {
 	test_asm_b();
 	test_address_fix();
 }
-//#if 0
+#if 0
 int main(){
 	unit_tests();
 }
-//#endif
+#endif
