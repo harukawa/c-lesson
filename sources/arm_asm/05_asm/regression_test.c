@@ -48,10 +48,13 @@ static void two_file_regression(char *expect_name, char *file_name) {
 	fclose(output_fp);
 }
 static void regression_test() {
+	setup_mnemonic();
 	two_file_regression("./test/test_expect/test.bin", "test");
+	two_file_regression("./test/test_expect/test_hello.bin", "test_hello");
 }
 
-
+//#if 0
 int main(int argc, char *argv[]) {
 	regression_test();
 }
+//#endif
