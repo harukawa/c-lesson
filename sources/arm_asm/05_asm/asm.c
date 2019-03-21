@@ -25,12 +25,21 @@ int assemble(char *output_name) {
 	emitter.buf = g_byte_buf;
 	emitter.pos = 0;
 	
+	setup_mnemonic();
+	dict_init();
+	list_init();
+	
+	
 	int count = 0;
 	while((str_len = cl_getline(&str)) != 0){
 		code = asm_one(str);
-		emit_word(&emitter, code);
-		count++;
+		if(code != 0) { 
+			emit_word(&emitter, code);
+			count++;
+		}
 	}
+	
+	address_fix();
 
 	if((fp = fopen(output_name, "wb")) == NULL) {
 		fprintf(stderr, "エラー: ファイルがオープンできません: %s\n", output_name);
@@ -44,16 +53,43 @@ int assemble(char *output_name) {
 	return 0;
 }
 
+int address_fix() {
+	struct List list;
+	struct KeyValue keyValue;
+	int code;
+	int tmp_pos = emitter.pos;
+	
+	//list : mnemonic   keyValue: label
+	while(list_get(&list)) {
+		if(0xea000000 == list.code) {
+			if(dict_get(list.label, &keyValue)) {
+				int pos = keyValue.value - list.emitter_pos;
+				pos = pos - 8;
+				pos = pos >> 2;
+				pos = 0xffffff & pos;
+				code = list.code + pos;
+			}
+		}
+		emitter.pos = list.emitter_pos;
+		emit_word(&emitter, code);
+	}
+	emitter.pos = tmp_pos;
+}
+
 int asm_one(char *str) {
 	struct substring op;
 	int read_len;
 	read_len = parse_one(str, &op);
 	
 	//case of label
-	if(":" == str[op.len-1]) {
+	if(':' == str[op.len-1]) {
 		int label;
-		label = to_label_symbol(op.str, op.len);
-
+		label = to_label_symbol(op.str, op.len - 1);
+		struct KeyValue keyValue;
+		keyValue.key = label;
+		keyValue.value = emitter.pos;
+		dict_put(&keyValue);
+		return 0;
 	//case of mnemonic
 	} else {
 		int mnemonic;
@@ -69,6 +105,8 @@ int asm_one(char *str) {
 			
 		} else if(g_raw == mnemonic) {
 			return asm_raw(&str[read_len]);
+		} else if(g_b == mnemonic || g_B == mnemonic) {
+			return asm_b(&str[read_len]);
 		}
 	}
 	return 0;	
@@ -79,6 +117,25 @@ int asm_raw(char *str) {
 	int len = 0;
 	tmp = parse_raw(&str[len], &embedded);
 	return embedded;
+}
+
+int asm_b(char *str) {
+	// Data processing P27 b
+	// offset  0x00ffffff
+	int read_len, label;
+	struct substring op;
+	int b = 0xea000000;
+	
+	read_len = parse_one(str, &op);
+	label = to_label_symbol(op.str, op.len);
+
+	struct List *list;
+	list = malloc(sizeof(list));
+	list->emitter_pos = emitter.pos;
+	list->label = label;
+	list->code = b;
+	list_put(list);
+	return b;
 }
 
 int asm_mov(char *str) {
@@ -196,12 +253,27 @@ static void test_assemble_mov() {
 }
 
 static void test_asm_one() {
+	emitter.pos = 0;
 	char *input = "mov r1, r2";
 	int expect = 0xe3a01002;
 	
 	int actual = asm_one(input);
 	
 	assert_number(expect, actual);	
+}
+
+static void test_asm_one_label() {
+	emitter.pos = 0;
+	char *input = "label:";
+	char *input_label = "label";
+	int expect_value = 0;
+	struct KeyValue actual;
+	
+	int label = asm_one(input);
+	int actual_key = to_label_symbol(input_label, 5);
+	dict_get(actual_key, &actual);
+
+	assert_number(expect_value, actual.value);
 }
 
 static void test_asm_one_space() {
@@ -268,7 +340,6 @@ static void test_asm_str() {
 	assert_number(expect, actual);
 }
 
-
 static void test_asm_raw_number() {
 	char *input = "  0x12345678";
 	int expect = 0x12345678;
@@ -276,6 +347,46 @@ static void test_asm_raw_number() {
 	
 	actual = asm_raw(input);
 	assert_number(expect, actual);
+}
+
+static void test_asm_b() {
+	list_init();
+	emitter.pos = 8;
+	char *input = "    label";
+	
+	int label;
+	int expect = 0xea000000;
+
+	struct List actual_list;
+	
+	int actual = asm_b(input);
+	list_get(&actual_list);
+	label = to_label_symbol("label", 5);
+	
+	assert_number(expect, actual);
+	assert_number(expect, actual_list.code);
+	assert_number(emitter.pos, actual_list.emitter_pos);
+	assert_number(label, actual_list.label);
+}
+
+static void test_address_fix() {
+	emitter.pos = 0;
+	dict_init();
+	list_init();
+	
+	char *input  = "label:";
+	char *input2 = "b label";
+	int expect[4] = {0xfe, 0xff, 0xff, 0xea};
+	
+	int code = asm_one(input);
+	code = asm_one(input2);
+	emit_word(&emitter, code);
+	address_fix();
+	
+	
+	for(int i=0; i<emitter.pos; i++) {
+		assert_number(expect[i], emitter.buf[i]);
+	}
 }
 
 static void unit_tests() {
@@ -290,9 +401,12 @@ static void unit_tests() {
 	test_asm_str_immediate();
 	test_asm_str();
 	test_asm_raw_number();
+	test_asm_one_label();
+	test_asm_b();
+	test_address_fix();
 }
-#if 0
+//#if 0
 int main(){
 	unit_tests();
 }
-#endif
+//#endif

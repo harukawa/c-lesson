@@ -12,6 +12,15 @@ int g_LDR;
 int g_str;
 int g_STR;
 int g_raw;
+int g_b;
+int g_B;
+
+struct List {
+	struct List *next;
+	int emitter_pos;
+	int label;
+	int code;
+};
 
 struct substring {
 	char *str;
@@ -51,3 +60,11 @@ int to_label_symbol(char *str, int len);
 
 int assemble();
 void debug_emitter_dump();
+
+int dict_get(int key, struct KeyValue *out_keyValue);
+void dict_put(struct KeyValue *keyValue);
+void dict_init();
+
+void list_put(struct List *add_list);
+int list_get(struct List *out_list);
+void list_init();

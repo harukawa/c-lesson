@@ -13,7 +13,7 @@ struct Node label_root;
 int mnemonic_id = 1;
 int label_id = 10000;
 
-int search_name_tree(char *str, struct Node *node, int len) {
+int search_name_tree(char *str, int len, struct Node *node) {
 	int i = strncmp(str, node->name, len);
 	if(i == 0) {
 		return node->value;
@@ -21,18 +21,18 @@ int search_name_tree(char *str, struct Node *node, int len) {
 		if(NULL == node->right) {
 			return -1;
 		} else {
-			return search_name_tree(str, node->right, len);
+			return search_name_tree(str, len, node->right);
 		}
 	} else if(i <= -1){
 		if(NULL == node->left) {
 			return -1;
 		} else {
-			return search_name_tree(str, node->left, len);
+			return search_name_tree(str, len, node->left);
 		}
 	}
 }
 
-int add_name_tree(char *str, struct Node *node,int len, int value) {
+int add_name_tree(char *str, int len, struct Node *node, int value) {
 	int i = strncmp(str, node->name, len);
 	if(i == 0) {
 		return node->value;
@@ -51,7 +51,7 @@ int add_name_tree(char *str, struct Node *node,int len, int value) {
 			node->right = right_node;
 			return right_node->value;
 		} else {
-			return add_name_tree(str, node->right,len, value);
+			return add_name_tree(str, len, node->right, value);
 		}
 	} else if(i <= -1){
 		if(NULL == node->left) {
@@ -68,7 +68,7 @@ int add_name_tree(char *str, struct Node *node,int len, int value) {
 			node->left = left_node;
 			return left_node->value;
 		} else {
-			return add_name_tree(str, node->left,len, value);
+			return add_name_tree(str, len, node->left, value);
 		}
 	}
 }
@@ -94,29 +94,29 @@ int search_value_tree(int value, struct Node *node, char **out_name) {
 
 int to_mnemonic_symbol(char *str, int len) {
 	int value;
-	value = search_name_tree(str, &mnemonic_root, len);
+	value = search_name_tree(str, len, &mnemonic_root);
 	if(value != -1) {
 		return value;
 	} else {
 		mnemonic_id++;
-		value = add_name_tree(str, &mnemonic_root, len, mnemonic_id);
+		value = add_name_tree(str, len, &mnemonic_root, mnemonic_id);
 		return value;
 	}
 }
 
 int to_label_symbol(char *str, int len) {
 	int value;
-	value = search_name_tree(str, &label_root, len);
+	value = search_name_tree(str, len, &label_root);
 	if(value != -1) {
 		return value;
 	} else {
 		label_id++;
-		value = add_name_tree(str, &label_root, len ,label_id);
+		value = add_name_tree(str, len, &label_root,label_id);
 		return value;
 	}
 }
 
-static void init() {
+static void binary_init() {
 	mnemonic_root.name = "root";
 	mnemonic_id = 1;
 	mnemonic_root.value = mnemonic_id;
@@ -131,7 +131,7 @@ static void init() {
 }
 
 void setup_mnemonic() {
-	init();
+	binary_init();
 	g_raw = to_mnemonic_symbol(".raw", 4);
 	g_mov = to_mnemonic_symbol("mov", 3);
 	g_MOV = to_mnemonic_symbol("MOV", 3);
@@ -139,11 +139,13 @@ void setup_mnemonic() {
 	g_LDR = to_mnemonic_symbol("LDR", 3);
 	g_str = to_mnemonic_symbol("str", 3);
 	g_STR = to_mnemonic_symbol("STR", 3);
+	g_b = to_mnemonic_symbol("b", 1);
+	g_B = to_mnemonic_symbol("B", 1);
 	
 }
 
 static void test_three_mnemonic_search() {
-	init();
+	binary_init();
 	int expect_mov = 2;
 	int expect_str = 3;
 	int expect_ldr = 4;
@@ -152,9 +154,9 @@ static void test_three_mnemonic_search() {
 	to_mnemonic_symbol("mov   ", 3);
 	to_mnemonic_symbol("str   ", 3);
 	to_mnemonic_symbol("ldr   ", 3);
-	actual_mov = search_name_tree("mov", &mnemonic_root, 3);
-	actual_str = search_name_tree("str", &mnemonic_root, 3);
-	actual_ldr = search_name_tree("ldr", &mnemonic_root, 3);
+	actual_mov = search_name_tree("mov", 3, &mnemonic_root);
+	actual_str = search_name_tree("str", 3, &mnemonic_root);
+	actual_ldr = search_name_tree("ldr", 3, &mnemonic_root);
 	
 	assert_number(expect_mov, actual_mov);
 	assert_number(expect_str, actual_str);
@@ -162,7 +164,7 @@ static void test_three_mnemonic_search() {
 }
 
 static void test_three_mnemonic_add() {
-	init();
+	binary_init();
 	int expect_mov = 2;
 	int expect_str = 3;
 	int expect_ldr = 4;
@@ -171,9 +173,9 @@ static void test_three_mnemonic_add() {
 	to_mnemonic_symbol("mov", 3);
 	to_mnemonic_symbol("str", 3);
 	to_mnemonic_symbol("ldr", 3);
-	actual_mov = add_name_tree("mov", &mnemonic_root, 3, mnemonic_id);
-	actual_str = add_name_tree("str", &mnemonic_root, 3, mnemonic_id);
-	actual_ldr = add_name_tree("ldr", &mnemonic_root, 3, mnemonic_id);
+	actual_mov = add_name_tree("mov", 3, &mnemonic_root, mnemonic_id);
+	actual_str = add_name_tree("str", 3, &mnemonic_root, mnemonic_id);
+	actual_ldr = add_name_tree("ldr", 3, &mnemonic_root, mnemonic_id);
 	
 	assert_number(expect_mov, actual_mov);
 	assert_number(expect_str, actual_str);
@@ -181,7 +183,7 @@ static void test_three_mnemonic_add() {
 }
 
 static void test_three_mnemonic_to_symbol() {
-	init();
+	binary_init();
 	int expect_mov = 2;
 	int expect_str = 3;
 	int expect_ldr = 4;
@@ -200,7 +202,7 @@ static void test_three_mnemonic_to_symbol() {
 }
 
 static void test_search_value_tree() {
-	init();
+	binary_init();
 	char *expect_mov = "mov";
 	char *expect_str = "str";
 	char *actual_mov;
@@ -217,7 +219,7 @@ static void test_search_value_tree() {
 }
 
 static void test_search_value_tree_fail() {
-	init();
+	binary_init();
 	char *input_str;
 	int expect = -1;
 	char *actual;
@@ -230,7 +232,7 @@ static void test_search_value_tree_fail() {
 }
 
 static void unit_test() {
-	init();
+	binary_init();
 	test_three_mnemonic_search();
 	test_three_mnemonic_add();
 	test_three_mnemonic_to_symbol();
