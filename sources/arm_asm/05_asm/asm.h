@@ -65,6 +65,6 @@ int dict_get(int key, struct KeyValue *out_keyValue);
 void dict_put(struct KeyValue *keyValue);
 void dict_init();
 
-void list_put(struct List *add_list);
-int list_get(struct List *out_list);
-void list_init();
+void unresolved_list_put(struct List *add_list);
+int unresolved_list_get(struct List *out_list);
+void unresolved_list_init();

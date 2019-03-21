@@ -3,7 +3,7 @@
 static int list_number;
 struct List *unresolved_list;
 
-void list_init() {
+void unresolved_list_init() {
 	list_number  = 0;
 	unresolved_list = malloc(sizeof(struct List));
 	unresolved_list->next = NULL;
@@ -12,7 +12,7 @@ void list_init() {
 	unresolved_list->code = 0;
 }
 
-void list_put(struct List *add_list) {
+void unresolved_list_put(struct List *add_list) {
 	struct List *list = unresolved_list;
 	while(list->next != NULL) {
 		list = list->next;
@@ -33,7 +33,7 @@ void list_put(struct List *add_list) {
 }
 
 
-int list_get(struct List *out_list) {
+int unresolved_list_get(struct List *out_list) {
 	struct List *list = unresolved_list;
 	int i = 0;
 	if(list->code == 0) return 0;
@@ -54,23 +54,23 @@ static void assert_list(struct List *expect, struct List *actual) {
 }
 
 static void test_two_put_add() {
-	list_init();
+	unresolved_list_init();
 	struct List input = {NULL, 1, 2, 3};
 	struct List input2 = {NULL, 4, 5, 6};
 	struct List actual;
 	struct List actual2;
 	
-	list_put(&input);
-	list_put(&input2);
-	list_get(&actual);
-	list_get(&actual2);
+	unresolved_list_put(&input);
+	unresolved_list_put(&input2);
+	unresolved_list_get(&actual);
+	unresolved_list_get(&actual2);
 
 	assert_list(&input, &actual);
 	assert_list(&input2, &actual2);
 }
 
 static void test_three_put_add() {
-	list_init();
+	unresolved_list_init();
 	struct List input = {NULL, 1, 2, 3};
 	struct List input2 = {NULL, 4, 5, 6};
 	struct List input3 = {NULL, 7, 8, 9};
@@ -78,12 +78,12 @@ static void test_three_put_add() {
 	struct List actual2;
 	struct List actual3;
 	
-	list_put(&input);
-	list_put(&input2);
-	list_put(&input3);
-	list_get(&actual);
-	list_get(&actual2);
-	list_get(&actual3);
+	unresolved_list_put(&input);
+	unresolved_list_put(&input2);
+	unresolved_list_put(&input3);
+	unresolved_list_get(&actual);
+	unresolved_list_get(&actual2);
+	unresolved_list_get(&actual3);
 
 	assert_list(&input, &actual);
 	assert_list(&input2, &actual2);
@@ -91,17 +91,17 @@ static void test_three_put_add() {
 }
 
 static void test_fail_get() {
-	list_init();
+	unresolved_list_init();
 	int expect = 0;
 	struct List input;
 	
-	int actual = list_get(&input);
+	int actual = unresolved_list_get(&input);
 	assert_number(expect, actual);
 	
 }
 
 static void unit_tests() {
-	list_init();
+	unresolved_list_init();
 	test_two_put_add();
 	test_three_put_add();
 	test_fail_get();

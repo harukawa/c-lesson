@@ -27,7 +27,7 @@ int assemble(char *output_name) {
 	
 	setup_mnemonic();
 	dict_init();
-	list_init();
+	unresolved_list_init();
 	
 	
 	int count = 0;
@@ -60,7 +60,8 @@ int address_fix() {
 	int tmp_pos = emitter.pos;
 	
 	//list : mnemonic   keyValue: label
-	while(list_get(&list)) {
+	while(unresolved_list_get(&list)) {
+		// case: b
 		if(0xea000000 == list.code) {
 			if(dict_get(list.label, &keyValue)) {
 				int pos = keyValue.value - list.emitter_pos;
@@ -134,7 +135,7 @@ int asm_b(char *str, struct Emitter *emitter) {
 	list->emitter_pos = emitter->pos;
 	list->label = label;
 	list->code = b;
-	list_put(list);
+	unresolved_list_put(list);
 	return b;
 }
 
@@ -350,7 +351,7 @@ static void test_asm_raw_number() {
 }
 
 static void test_asm_b() {
-	list_init();
+	unresolved_list_init();
 	emitter.pos = 8;
 	char *input = "    label";
 	
@@ -360,7 +361,7 @@ static void test_asm_b() {
 	struct List actual_list;
 	
 	int actual = asm_b(input, &emitter);
-	list_get(&actual_list);
+	unresolved_list_get(&actual_list);
 	label = to_label_symbol("label", 5);
 	
 	assert_number(expect, actual);
@@ -372,7 +373,7 @@ static void test_asm_b() {
 static void test_address_fix() {
 	emitter.pos = 0;
 	dict_init();
-	list_init();
+	unresolved_list_init();
 	
 	char *input  = "label:";
 	char *input2 = "b label";
