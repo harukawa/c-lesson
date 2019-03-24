@@ -49,6 +49,22 @@ int is_raw_string(char *str) {
 	}
 }
 
+int is_equals_sign(char *str) {
+	int single_ch, length = 0;
+	single_ch = str[0];
+
+	while(' ' == single_ch) {
+		if(single_ch == '\0') return PARSE_FAIL;
+		length++;
+		single_ch = str[length];
+	}
+	if('=' == single_ch) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
 int convert_character_to_digit(int c) {
 	if('a' <= c && c <= 'f') {
 		return c - 'a' + 10;
@@ -107,12 +123,12 @@ int parse_one(char *str, struct substring *out_sub) {
 	return PARSE_FAIL;
 }
 
-int parse_string(char *str, char **out_str) {
+int parse_string(char *str, char stopchar, char **out_str) {
 	int single_ch, length = 0, i = 0;
 	char read_str[124] = {};
 	single_ch = str[0];
 	
-	while('"' != single_ch) {
+	while(stopchar != single_ch) {
 		if(single_ch == '\0') return PARSE_FAIL;
 		i++;
 		single_ch = str[i];
@@ -153,15 +169,14 @@ int parse_string(char *str, char **out_str) {
 		}
 		i++;
 	}
-	length++;
-	read_str[length] = '\0';
+	read_str[length++] = '\0';
 	int mem_size = sizeof(char) * length;
 	char *tmp;
 	tmp = (char *)malloc(mem_size);
 	memcpy(tmp, read_str, mem_size);
 	*out_str = tmp;
 
-	return length;
+	return length-1;
 }
 
 int parse_register(char *str, int *out_register) {
@@ -502,10 +517,10 @@ static void test_parse_string() {
 	int actual_len, actual_len2;
 	
 	cl_getline(&input);
-	actual_len = parse_string(input, &actual);
+	actual_len = parse_string(input, '"', &actual);
 	cl_getline(&input);
-	actual_len2 = parse_string(input, &actual2);
-	
+	actual_len2 = parse_string(input, '"', &actual2);
+
 	fclose(fp);
 	assert_number(expect_len, actual_len);
 	assert_substreq(expect, actual, expect_len);

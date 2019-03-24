@@ -91,6 +91,12 @@ int address_fix() {
 				pos = 0xffffff & pos;
 				code = list.code + pos;
 			}
+		} else if(0xe59f0000 == (list.code & 0xffff0000)) {
+			if(dict_get(list.label, &keyValue)) {
+				int pos = keyValue.value - list.emitter_pos;
+				pos = 0xfff & pos;
+				code = list.code + pos;
+			}
 		}
 		emitter.pos = list.emitter_pos;
 		emit_word(&emitter, code);
@@ -139,7 +145,7 @@ int asm_raw(char *str, struct Emitter *emitter) {
 	if(is_raw_string(str)) {
 		char *embedded_str = "";
 		int len;
-		len = parse_string(str, &embedded_str);
+		len = parse_string(str, '"', &embedded_str);
 		emit_embedded(emitter, embedded_str);
 		return 0;
 	//　数字の場合
@@ -195,38 +201,59 @@ int asm_mov(char *str) {
 	return mov;
 }
 
-int asm_common_str_ldr(char *str, int *out_rn, int *out_rd, int *out_offset) {
+int asm_common_str_ldr(char *str, int *out_rn, int *out_rd, 
+	int *out_offset, struct Emitter *emitter) {
 	// Data processing P42 STR LDR 
 	// rn       0x000f0000
 	// rd       0x0000f000
 	// offset   0x00000fff
-	int rn,rd,offset = 0x0;
+	int rn = 0,rd = 0,offset = 0x0;
 	int len = 0, tmp;
 	
 	tmp = parse_register(&str[len], &rd);
+	rd = rd << 12;
 	if(0 >= tmp) return 0;
 	len += tmp;
 	tmp = skip_comma(&str[len]);
 	if(0 >= tmp) return 0;
 	len += tmp;
+	// ラベルの場合 ldr
+	if(is_equals_sign(&str[len])) {
+		char *label;
+		int label_len, label_number;
+		rn = 15;
+		rn = rn << 16;
+		label_len = parse_string(&str[len], '=', &label);
+		label_number = to_label_symbol(label, label_len);
+
+		struct List *list;
+		int code = 0xe59f0000;
+		code = code + rd;
+		list = malloc(sizeof(list));
+		list->emitter_pos = emitter->pos;
+		list->label = label_number;
+		list->code = code;
+		unresolved_list_put(list);
 	
-	if(is_sbracket(&str[len])) {
-		tmp = skip_sbracket(&str[len]);
-		len += tmp;
-		tmp = parse_register(&str[len], &rn);
-		if(0 >= tmp) return 0;
-		len += tmp;
-	}
-	if(!is_sbracket(&str[len])) {
-		tmp = skip_comma(&str[len]);
-		if(0 >= tmp) return 0;
-		len += tmp;
-		tmp = parse_immediate(&str[len], &offset);
+	// レジスタと即値の場合
+	} else {
+		if(is_sbracket(&str[len])) {
+			tmp = skip_sbracket(&str[len]);
+			len += tmp;
+			tmp = parse_register(&str[len], &rn);
+			rn = rn << 16;
+			if(0 >= tmp) return 0;
+			len += tmp;
+		}
+		if(!is_sbracket(&str[len])) {
+			tmp = skip_comma(&str[len]);
+			if(0 >= tmp) return 0;
+			len += tmp;
+			tmp = parse_immediate(&str[len], &offset);
+		}
 	}
 	
-	rn = rn << 16;
 	*out_rn = rn;
-	rd = rd << 12;
 	*out_rd = rd;
 	*out_offset = offset;
 	
@@ -235,7 +262,7 @@ int asm_common_str_ldr(char *str, int *out_rn, int *out_rd, int *out_offset) {
 
 int asm_str(char *str) {
 	int rn,rd, offset;
-	asm_common_str_ldr(str, &rn, &rd, &offset);
+	asm_common_str_ldr(str, &rn, &rd, &offset, &emitter);
 	int str_code = 0xe5800000;
 	
 	str_code += rn;
@@ -244,9 +271,9 @@ int asm_str(char *str) {
 	return str_code;
 }
 
-int asm_ldr(char *str) {
+int asm_ldr(char *str, struct Emitter *emitter) {
 	int rn,rd, offset;
-	asm_common_str_ldr(str, &rn, &rd, &offset);
+	asm_common_str_ldr(str, &rn, &rd, &offset, emitter);
 	int ldr = 0xe5900000;
 	
 	ldr += rn;
@@ -340,7 +367,7 @@ static void test_asm_ldr_immediate() {
 	int expect = 0xe59f0030;
 	int actual;
 	
-	actual = asm_ldr(input);
+	actual = asm_ldr(input, &emitter);
 	assert_number(expect, actual);
 }
 
@@ -349,7 +376,7 @@ static void test_asm_ldr() {
 	int expect = 0xe59e1000;
 	int actual;
 	
-	actual = asm_ldr(input);
+	actual = asm_ldr(input, &emitter);
 	assert_number(expect, actual);
 }
 
@@ -432,7 +459,7 @@ static void test_asm_raw_string() {
 	cl_getline(&input);
 	asm_raw(input, &emitter);
 	fclose(fp);
-	
+
 	assert_number(expect_pos, emitter.pos);
 	for(int i=0; i<12; i++) {
 		assert_number(expect[i],emitter.buf[i]);
@@ -460,6 +487,48 @@ static void test_address_fix() {
 	}
 }
 
+static void test_asm_ldr_label() {
+	unresolved_list_init();
+	dict_init();
+	emitter.pos = 8;
+	char *input = "    r1, =label";
+	int expect = 0xe59f1000;
+	int actual, label;
+	
+	struct List actual_list;
+	
+	actual = asm_ldr(input, &emitter);
+	unresolved_list_get(&actual_list);
+	label = to_label_symbol("label", 5);
+	
+	assert_number(expect, actual);
+	assert_number(expect, actual_list.code);
+	assert_number(emitter.pos, actual_list.emitter_pos);
+	assert_number(label, actual_list.label);
+}
+
+static void test_address_fix_ldr() {
+	emitter.pos = 0;
+	dict_init();
+	unresolved_list_init();
+	
+	char *input  = "ldr r0, =label";
+	char *input2 = "label:";
+	char *input3 = ".raw 0x101f1000";
+	int expect[4] = {0x04, 0x00, 0x9f, 0xe5};
+	
+	int code = asm_one(input);
+	emit_word(&emitter, code);
+	code = asm_one(input2);
+	code = asm_one(input3);
+	emit_word(&emitter, code);
+	address_fix();
+	
+	for(int i=0; i<4; i++) {
+		assert_number(expect[i], emitter.buf[i]);
+	}
+}
+
 static void unit_tests() {
 	setup_mnemonic();
 	test_asm_mov();
@@ -477,6 +546,8 @@ static void unit_tests() {
 	test_address_fix();
 	test_emit_embedded();
 	test_asm_raw_string();
+	test_asm_ldr_label();
+	test_address_fix_ldr();
 }
 //#if 0
 int main(){
