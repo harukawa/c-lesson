@@ -53,6 +53,9 @@ int is_register(char *str);
 int parse_immediate(char *str, int *out_immediate);
 int skip_sbracket(char *str);
 int is_sbracket(char *str);
+int parse_string(char *str, char **out_str);
+int is_raw_string(char *str);
+int parse_raw_number(char *str, int *out_embedded);
 
 void setup_mnemonic();
 int to_mnemonic_symbol(char *str, int len);

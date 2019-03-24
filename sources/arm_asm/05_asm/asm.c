@@ -15,6 +15,26 @@ void emit_word(struct Emitter *emitter, int oneword) {
 	emitter->pos = pos + 4;
 }
 
+void emit_embedded(struct Emitter *emitter, char *one_embedded) {
+	int pos = emitter->pos;
+	int i;
+	char *buf = one_embedded;
+	int length = strlen(buf);
+	for(i = 0; i< length; i++){;
+		emitter->buf[pos+i] = buf[i];
+	}
+	
+	pos = pos + length;
+	int remaining = length % 4;
+	if(remaining != 0) {
+		for(i=0; i < 4-remaining; i++) {
+			emitter->buf[pos+i] = NULL;
+		}
+		pos = pos + (4-remaining);
+	}
+	emitter->pos = pos;
+}
+
 int assemble(char *output_name) {
 	FILE *fp;
 	int str_len;
@@ -29,13 +49,14 @@ int assemble(char *output_name) {
 	dict_init();
 	unresolved_list_init();
 	
-	
-	int count = 0;
 	while((str_len = cl_getline(&str)) != 0){
 		code = asm_one(str);
-		if(code != 0) { 
-			emit_word(&emitter, code);
-			count++;
+		if(code != 0) {
+			if(code > 0xffffffff) {
+				
+			} else {
+				emit_word(&emitter, code);
+			}
 		}
 	}
 	
@@ -105,7 +126,7 @@ int asm_one(char *str) {
 			return asm_str(&str[read_len]);
 			
 		} else if(g_raw == mnemonic) {
-			return asm_raw(&str[read_len]);
+			return asm_raw(&str[read_len], &emitter);
 		} else if(g_b == mnemonic || g_B == mnemonic) {
 			return asm_b(&str[read_len], &emitter);
 		}
@@ -113,11 +134,20 @@ int asm_one(char *str) {
 	return 0;	
 }
 
-int asm_raw(char *str) {
-	int embedded,tmp;
-	int len = 0;
-	tmp = parse_raw(&str[len], &embedded);
-	return embedded;
+int asm_raw(char *str, struct Emitter *emitter) {
+	// 文字の場合
+	if(is_raw_string(str)) {
+		char *embedded_str = "";
+		int len;
+		len = parse_string(str, &embedded_str);
+		emit_embedded(emitter, embedded_str);
+		return 0;
+	//　数字の場合
+	} else {
+		int embedded;
+		parse_raw_number(str, &embedded);
+		return embedded;
+	}
 }
 
 int asm_b(char *str, struct Emitter *emitter) {
@@ -346,7 +376,8 @@ static void test_asm_raw_number() {
 	int expect = 0x12345678;
 	int actual;
 	
-	actual = asm_raw(input);
+	actual = asm_raw(input, &emitter);
+
 	assert_number(expect, actual);
 }
 
@@ -369,6 +400,45 @@ static void test_asm_b() {
 	assert_number(emitter.pos, actual_list.emitter_pos);
 	assert_number(label, actual_list.label);
 }
+
+static void test_emit_embedded() {
+	emitter.pos = 0;
+	char *input = "st\n\\\"ring";
+	int expect_pos = 12;
+	int expect[12] ={0x73, 0x74, 0x0a, 0x5c, 0x22, 0x72, 0x69, 0x6e, 0x67, 0x0, 0x0, 0x0};
+	
+	emit_embedded(&emitter, input);
+	
+	assert_number(expect_pos, emitter.pos);
+	for(int i=0; i<12; i++) {
+		assert_number(expect[i],emitter.buf[i]);
+	}
+}
+
+static void test_asm_raw_string() {
+	emitter.pos = 0;
+	char *input;
+	FILE *fp = NULL;
+	char *file_name = "./test/test_parser_raw_string.s";
+	if((fp=fopen(file_name, "r"))==NULL){
+		fprintf(stderr, "エラー: ファイルがオープンできません: %s\n", file_name);
+		exit(EXIT_FAILURE);
+	}
+	cl_file_set_fp(fp);
+	
+	int expect_pos = 12;
+	int expect[12] ={0x73, 0x74, 0x0a, 0x5c, 0x22, 0x72, 0x69, 0x6e, 0x67, 0x0, 0x0, 0x0};
+	
+	cl_getline(&input);
+	asm_raw(input, &emitter);
+	fclose(fp);
+	
+	assert_number(expect_pos, emitter.pos);
+	for(int i=0; i<12; i++) {
+		assert_number(expect[i],emitter.buf[i]);
+	} 
+}
+
 
 static void test_address_fix() {
 	emitter.pos = 0;
@@ -405,9 +475,11 @@ static void unit_tests() {
 	test_asm_one_label();
 	test_asm_b();
 	test_address_fix();
+	test_emit_embedded();
+	test_asm_raw_string();
 }
-#if 0
+//#if 0
 int main(){
 	unit_tests();
 }
-#endif
+//#endif

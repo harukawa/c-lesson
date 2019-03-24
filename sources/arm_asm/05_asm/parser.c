@@ -1,5 +1,11 @@
 #include "asm.h"
 
+enum readState {
+	normal,
+	backslach,
+	final
+};
+
 int is_valid_digit(int c){
 	return  '0' <= c && c <= '9';
 }
@@ -25,6 +31,22 @@ int is_register(char *str) {
 		return 1;
 	}
 	return 0;
+}
+
+int is_raw_string(char *str) {
+	int single_ch, length = 0;
+	single_ch = str[0];
+
+	while(' ' == single_ch) {
+		if(single_ch == '\0') return PARSE_FAIL;
+		length++;
+		single_ch = str[length];
+	}
+	if('"' == single_ch) {
+		return 1;
+	} else if(single_ch == '-' || single_ch == '0') {
+		return 0;
+	}
 }
 
 int convert_character_to_digit(int c) {
@@ -70,7 +92,7 @@ int parse_one(char *str, struct substring *out_sub) {
 		single_ch = str[i + length];
 	}
 	
-	if(single_ch == ' ') {
+	if(single_ch == ' ' || single_ch == '\0') {
 		out_sub->str = &str[i];
 		out_sub->len = length;
 		return i + length;
@@ -82,7 +104,64 @@ int parse_one(char *str, struct substring *out_sub) {
 		return i + length;
 	}
 	
-	return PRASE_FAIL;
+	return PARSE_FAIL;
+}
+
+int parse_string(char *str, char **out_str) {
+	int single_ch, length = 0, i = 0;
+	char read_str[124] = {};
+	single_ch = str[0];
+	
+	while('"' != single_ch) {
+		if(single_ch == '\0') return PARSE_FAIL;
+		i++;
+		single_ch = str[i];
+	}
+	
+	i++;
+	enum readState state = normal;
+	while(state != final) {
+		single_ch = str[i];
+		switch(state) {
+			case normal:
+						if(single_ch == '\\') {
+							state = backslach;
+							break;
+						} else if(single_ch == '"') {
+							state = final;
+							break;
+						} else if(single_ch == '\0') {
+							state = final;
+							break;
+						} else {
+							read_str[length] = single_ch;
+							length++;
+						}
+						break;
+						
+			case backslach:
+						if(single_ch == 'n') {
+							read_str[length] = '\n';
+						} else {
+							read_str[length] = single_ch;
+						}
+						length++;
+						state = normal;
+						break;
+						
+			case final:break;
+		}
+		i++;
+	}
+	length++;
+	read_str[length] = '\0';
+	int mem_size = sizeof(char) * length;
+	char *tmp;
+	tmp = (char *)malloc(mem_size);
+	memcpy(tmp, read_str, mem_size);
+	*out_str = tmp;
+
+	return length;
 }
 
 int parse_register(char *str, int *out_register) {
@@ -90,7 +169,7 @@ int parse_register(char *str, int *out_register) {
 	single_ch = str[0];
 
 	while('r' != single_ch && 'R' != single_ch) {
-		if(single_ch == '\0') return PRASE_FAIL;
+		if(single_ch == '\0') return PARSE_FAIL;
 		length++;
 		single_ch = str[length];
 	}
@@ -99,7 +178,7 @@ int parse_register(char *str, int *out_register) {
 
 	int number = 0;
 	do {
-		if(single_ch == '\0') return PRASE_FAIL;
+		if(single_ch == '\0') return PARSE_FAIL;
 		number = number * 10 +(single_ch-'0');
 		length++;
 		single_ch = str[length];
@@ -116,7 +195,7 @@ int parse_immediate(char *str, int *out_immediate) {
 	int minus = 0;
 
 	while('#' != single_ch) {
-		if(single_ch == '\0') return PRASE_FAIL;
+		if(single_ch == '\0') return PARSE_FAIL;
 		length++;
 		single_ch = str[length];
 	}
@@ -131,7 +210,7 @@ int parse_immediate(char *str, int *out_immediate) {
 	int number = 0x0;
 	int digit = 0;
 	do {
-		if(single_ch == '\0') return PRASE_FAIL;
+		if(single_ch == '\0') return PARSE_FAIL;
 		if(is_valid_character(single_ch)) {
 			single_ch = convert_character_to_digit(single_ch);
 			number = number * 16 +(single_ch);
@@ -160,13 +239,13 @@ int parse_immediate(char *str, int *out_immediate) {
 	return length;
 }
 
-int parse_raw(char *str, int *out_embedded) {
+int parse_raw_number(char *str, int *out_embedded) {
 	int single_ch, length = 0;
 	single_ch = str[0];
 	int minus = 0;
 
 	while(' ' == single_ch) {
-		if(single_ch == '\0') return PRASE_FAIL;
+		if(single_ch == '\0') return PARSE_FAIL;
 		length++;
 		single_ch = str[length];
 	}
@@ -183,7 +262,7 @@ int parse_raw(char *str, int *out_embedded) {
 		int number = 0x0;
 		int digit = 0;
 		do {
-			if(single_ch == '\0') return PRASE_FAIL;
+			if(single_ch == '\0') return PARSE_FAIL;
 			if(is_valid_character(single_ch)) {
 				single_ch = convert_character_to_digit(single_ch);
 				number = number * 16 +(single_ch);
@@ -206,10 +285,9 @@ int parse_raw(char *str, int *out_embedded) {
 			number = number & m;
 		}
 		*out_embedded = number;
-	} else {
-		//後で文字のケースを追加
+		return length;
 	}
-	return length;
+	return 0;
 }
 
 int skip_sbracket(char *str) {
@@ -218,7 +296,7 @@ int skip_sbracket(char *str) {
 	single_ch = str[0];
 
 	while(single_ch != '['){
-		if(single_ch == '\0') return PRASE_FAIL;
+		if(single_ch == '\0') return PARSE_FAIL;
 		length++;
 		single_ch = str[length];
 	}
@@ -232,7 +310,7 @@ int skip_comma(char *str) {
 	single_ch = str[0];
 
 	while(single_ch != ','){
-		if(single_ch == '\0') return PRASE_FAIL;
+		if(single_ch == '\0') return PARSE_FAIL;
 		length++;
 		single_ch = str[length];
 	}
@@ -387,11 +465,11 @@ static void test_skip_sbracket() {
 }
 
 static void test_parse_raw_immediate() {
-	char *input = "  0x64";
+	char *input = "  0x12345678";
 	int actual;
-	int expect = 0x64;
+	int expect = 0x12345678;
 
-	int actual_len = parse_raw(input, &actual);
+	int actual_len = parse_raw_number(input, &actual);
 
 	assert_number(expect, actual);
 }
@@ -401,10 +479,40 @@ static void test_parse_raw_immediate_minus() {
 	int actual;
 	int expect = 0x9c;
 
-	int actual_len = parse_raw(input, &actual);
+	int actual_len = parse_raw_number(input, &actual);
 
 	assert_number(expect, actual);
 }
+
+static void test_parse_string() {
+	char *input;
+	FILE *fp = NULL;
+	char *file_name = "./test/test_parser_string.s";
+	if((fp=fopen(file_name, "r"))==NULL){
+		fprintf(stderr, "エラー: ファイルがオープンできません: %s\n", file_name);
+		exit(EXIT_FAILURE);
+	}
+	cl_file_set_fp(fp);
+	
+	char *actual, *actual2;
+	char *expect = "string";
+	char *expect2 = "st\n\\\"ring";
+	int expect_len = 6;
+	int expect_len2 = 9;
+	int actual_len, actual_len2;
+	
+	cl_getline(&input);
+	actual_len = parse_string(input, &actual);
+	cl_getline(&input);
+	actual_len2 = parse_string(input, &actual2);
+	
+	fclose(fp);
+	assert_number(expect_len, actual_len);
+	assert_substreq(expect, actual, expect_len);
+	assert_number(expect_len2, actual_len2);
+	assert_substreq(expect2, actual2, expect_len2);
+}
+
 
 static void unit_tests() {
 	test_parse_one_upper();
@@ -426,6 +534,7 @@ static void unit_tests() {
 	test_parse_immediate_minus();
 	test_parse_raw_immediate();
 	test_parse_raw_immediate_minus();
+	test_parse_string();
 }
 #if 0
 int main(){
