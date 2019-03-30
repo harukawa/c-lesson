@@ -4,11 +4,18 @@
 
 struct Emitter emitter;
 static unsigned char g_byte_buf[100*1024];
+int embedded_remain = -1;
 
 void emit_word(struct Emitter *emitter, int oneword) {
 	int pos = emitter->pos;
 	int i;
 	char *buf = &oneword;
+	// 文字の埋め込み後の場合
+	if(embedded_remain != -1) {
+		pos = pos + (3 - embedded_remain);
+		embedded_remain = -1;
+	}
+	
 	for(i =0; i<4; i++) {
 		emitter->buf[pos+i] = buf[i];
 	}
@@ -20,19 +27,41 @@ void emit_embedded(struct Emitter *emitter, char *one_embedded) {
 	int i;
 	char *buf = one_embedded;
 	int length = strlen(buf);
+	int bit_shift = 3;
+	
+	switch(embedded_remain) {
+		case 3: bit_shift = 3;
+				break;
+		case 2: bit_shift = -3;
+				break;
+		case 1: bit_shift = -1;
+				break;
+		case 0: bit_shift = 1;
+				break;
+		case -1: break;
+	}
+	
 	for(i = 0; i< length; i++){;
-		emitter->buf[pos+i] = buf[i];
+		emitter->buf[pos+i+bit_shift] = buf[i];
+		bit_shift = bit_shift - 2;
+		if(bit_shift < -3) {
+			bit_shift = 3;
+		}
 	}
 	
 	pos = pos + length;
-	int remaining = length % 4;
-	if(remaining != 0) {
-		for(i=0; i < 4-remaining; i++) {
-			emitter->buf[pos+i] = NULL;
+	
+	//　0x0を埋め込む
+	int remain = length % 4;
+	embedded_remain = remain;
+	for(i = 0; i< 4-remain;i++) {
+		emitter->buf[pos+i+bit_shift] = 0x0;
+		bit_shift = bit_shift - 2;
+		if(bit_shift < -3) {
+			bit_shift = 3;
 		}
-		pos = pos + (4-remaining);
 	}
-	emitter->pos = pos;
+	emitter->pos = pos + 1;
 }
 
 int assemble(char *output_name) {
@@ -44,19 +73,17 @@ int assemble(char *output_name) {
 	
 	emitter.buf = g_byte_buf;
 	emitter.pos = 0;
+	embedded_remain = -1;
 	
 	setup_mnemonic();
 	dict_init();
 	unresolved_list_init();
+	embedded_remain = -1;
 	
 	while((str_len = cl_getline(&str)) != 0){
 		code = asm_one(str);
 		if(code != 0) {
-			if(code > 0xffffffff) {
-				
-			} else {
-				emit_word(&emitter, code);
-			}
+			emit_word(&emitter, code);
 		}
 	}
 	
@@ -79,7 +106,6 @@ int address_fix() {
 	struct KeyValue keyValue;
 	int code;
 	int tmp_pos = emitter.pos;
-	
 	//list : mnemonic   keyValue: label
 	while(unresolved_list_get(&list)) {
 		// case: b
@@ -91,11 +117,25 @@ int address_fix() {
 				pos = 0xffffff & pos;
 				code = list.code + pos;
 			}
+		// case: ldr
 		} else if(0xe59f0000 == (list.code & 0xffff0000)) {
 			if(dict_get(list.label, &keyValue)) {
-				int pos = keyValue.value - list.emitter_pos;
-				pos = 0xfff & pos;
+				int pos = emitter.pos - list.emitter_pos;
+				if(embedded_remain == 0) {
+					pos += 4;
+				} else if(embedded_remain >= 1) {
+					pos += embedded_remain - 1;
+				}
+				
 				code = list.code + pos;
+				// last
+				int last_code = 0x00000000;
+				int rn = (list.code >> 12) & 0xf;
+				last_code += rn << 16;
+				last_code += keyValue.value;
+				emitter.pos = tmp_pos;
+				emit_word(&emitter, last_code);
+				tmp_pos += 4;
 			}
 		}
 		emitter.pos = list.emitter_pos;
@@ -429,21 +469,61 @@ static void test_asm_b() {
 }
 
 static void test_emit_embedded() {
+	embedded_remain = -1;
 	emitter.pos = 0;
 	char *input = "st\n\\\"ring";
-	int expect_pos = 12;
-	int expect[12] ={0x73, 0x74, 0x0a, 0x5c, 0x22, 0x72, 0x69, 0x6e, 0x67, 0x0, 0x0, 0x0};
+	int expect_pos = 10;
+	int expect[10] ={0x5c, 0x0a, 0x74, 0x73, 0x6e, 0x69, 0x72, 0x22, 0x67, 0x0};
 	
 	emit_embedded(&emitter, input);
+	assert_number(expect_pos, emitter.pos);
+	for(int i=0; i<8; i++) {
+		assert_number(expect[i],emitter.buf[i]);
+	}
+	assert_number(expect[8],emitter.buf[11]);
+	assert_number(expect[9],emitter.buf[10]);
+}
+
+static void test_two_emit_embedded() {
+	embedded_remain = -1;
+	emitter.pos = 0;
+	char *input = "st\n\\\"ring";
+	char *input2 = "str";
+	int expect_pos = 14;
+	int expect[13] ={0x5c, 0x0a, 0x74, 0x73, 0x6e, 0x69, 0x72, 0x22, 0x74,0x73, 0x0,0x67, 0x72};
 	
+	emit_embedded(&emitter, input);
+	emit_embedded(&emitter, input2);
+
 	assert_number(expect_pos, emitter.pos);
 	for(int i=0; i<12; i++) {
 		assert_number(expect[i],emitter.buf[i]);
 	}
+	assert_number(expect[12],emitter.buf[15]);
+
+}
+
+static void test_emit_embedded_word() {
+	embedded_remain = -1;
+	emitter.pos = 0;
+	char *input = "st\n\\\"ring";
+	int  input2 = 0x101f1000;
+	int expect_pos = 16;
+	int expect[16] ={0x5c, 0x0a, 0x74, 0x73, 0x6e, 0x69, 0x72, 0x22, 0x0,0x0, 0x0,0x67, 0x0, 0x10, 0x1f, 0x10};
+	
+	emit_embedded(&emitter, input);
+	emit_word(&emitter, input2);
+	
+	assert_number(expect_pos, emitter.pos);
+	for(int i=0; i<16; i++) {
+		assert_number(expect[i],emitter.buf[i]);
+	}
+
 }
 
 static void test_asm_raw_string() {
 	emitter.pos = 0;
+	embedded_remain = -1;
 	char *input;
 	FILE *fp = NULL;
 	char *file_name = "./test/test_parser_raw_string.s";
@@ -453,21 +533,25 @@ static void test_asm_raw_string() {
 	}
 	cl_file_set_fp(fp);
 	
-	int expect_pos = 12;
-	int expect[12] ={0x73, 0x74, 0x0a, 0x5c, 0x22, 0x72, 0x69, 0x6e, 0x67, 0x0, 0x0, 0x0};
+	int expect_pos = 10;
+	int expect[10] ={0x5c, 0x0a, 0x74, 0x73, 0x6e, 0x69, 0x72, 0x22, 0x67, 0x0};
 	
 	cl_getline(&input);
 	asm_raw(input, &emitter);
 	fclose(fp);
 
 	assert_number(expect_pos, emitter.pos);
-	for(int i=0; i<12; i++) {
+	for(int i=0; i<8; i++) {
 		assert_number(expect[i],emitter.buf[i]);
-	} 
+	}
+	assert_number(expect[8],emitter.buf[11]);
+	assert_number(expect[9],emitter.buf[10]);
+	
 }
 
 
 static void test_address_fix() {
+	embedded_remain = -1;
 	emitter.pos = 0;
 	dict_init();
 	unresolved_list_init();
@@ -488,9 +572,10 @@ static void test_address_fix() {
 }
 
 static void test_asm_ldr_label() {
+	embedded_remain = -1;
 	unresolved_list_init();
 	dict_init();
-	emitter.pos = 8;
+	emitter.pos = 0;
 	char *input = "    r1, =label";
 	int expect = 0xe59f1000;
 	int actual, label;
@@ -508,28 +593,77 @@ static void test_asm_ldr_label() {
 }
 
 static void test_address_fix_ldr() {
+	embedded_remain = -1;
 	emitter.pos = 0;
 	dict_init();
 	unresolved_list_init();
 	
-	char *input  = "ldr r0, =label";
+	char *input  = "ldr r1, =label";
 	char *input2 = "label:";
 	char *input3 = ".raw 0x101f1000";
-	int expect[4] = {0x04, 0x00, 0x9f, 0xe5};
+	int expect[4] = {0x08, 0x10, 0x9f, 0xe5};
+	int expect2[4] = {0x04, 0x00, 0x01, 0x00};
 	
-	int code = asm_one(input);
+	int code;
+	code = asm_one(input);
 	emit_word(&emitter, code);
 	code = asm_one(input2);
 	code = asm_one(input3);
 	emit_word(&emitter, code);
 	address_fix();
-	
-	for(int i=0; i<4; i++) {
+
+	int i;
+	for(i=0; i<4; i++) {
 		assert_number(expect[i], emitter.buf[i]);
+	}
+	for(i=8; i<emitter.pos; i++) {
+		assert_number(expect2[i-8], emitter.buf[i]);
+	}
+}
+
+static void test_address_fix_ldr_string() {
+	embedded_remain = -1;
+	emitter.pos = 0;
+	dict_init();
+	unresolved_list_init();
+	
+	//ldr r1, =label
+	//label:
+	//.raw "hello\n"
+	
+	char *input;
+	FILE *fp = NULL;
+	char *file_name = "./test/test_ldr_label.s";
+	if((fp=fopen(file_name, "r"))==NULL){
+		fprintf(stderr, "エラー: ファイルがオープンできません: %s\n", file_name);
+		exit(EXIT_FAILURE);
+	}
+	cl_file_set_fp(fp);
+	
+	int expect[4] = {0x0c, 0x10, 0x9f, 0xe5};
+	int expect2[4] = {0x04, 0x00, 0x01, 0x00};
+	
+	cl_getline(&input);
+	int code = asm_one(input);
+	emit_word(&emitter, code);
+	cl_getline(&input);
+	code = asm_one(input);
+	cl_getline(&input);
+	code = asm_one(input);
+	address_fix();
+	fclose(fp);
+
+	int i;
+	for(i=0; i<4; i++) {
+		assert_number(expect[i], emitter.buf[i]);
+	}
+	for(i=12; i<emitter.pos; i++) {
+		assert_number(expect2[i-12], emitter.buf[i]);
 	}
 }
 
 static void unit_tests() {
+	printf("unit test start\n");
 	setup_mnemonic();
 	test_asm_mov();
 	test_asm_mov_immediate();
@@ -545,9 +679,13 @@ static void unit_tests() {
 	test_asm_b();
 	test_address_fix();
 	test_emit_embedded();
+	test_two_emit_embedded();
+	test_emit_embedded_word();
 	test_asm_raw_string();
 	test_asm_ldr_label();
 	test_address_fix_ldr();
+	test_address_fix_ldr_string();
+	printf("unit test end\n");
 }
 //#if 0
 int main(){

@@ -149,6 +149,9 @@ int parse_string(char *str, char stopchar, char **out_str) {
 						} else if(single_ch == '\0') {
 							state = final;
 							break;
+						} else if(single_ch == '\r') {
+							state = final;
+							break;
 						} else {
 							read_str[length] = single_ch;
 							length++;
