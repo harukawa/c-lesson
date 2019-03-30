@@ -27,26 +27,9 @@ void emit_embedded(struct Emitter *emitter, char *one_embedded) {
 	int i;
 	char *buf = one_embedded;
 	int length = strlen(buf);
-	int bit_shift = 3;
-	
-	switch(embedded_remain) {
-		case 3: bit_shift = 3;
-				break;
-		case 2: bit_shift = -3;
-				break;
-		case 1: bit_shift = -1;
-				break;
-		case 0: bit_shift = 1;
-				break;
-		case -1: break;
-	}
 	
 	for(i = 0; i< length; i++){;
-		emitter->buf[pos+i+bit_shift] = buf[i];
-		bit_shift = bit_shift - 2;
-		if(bit_shift < -3) {
-			bit_shift = 3;
-		}
+		emitter->buf[pos+i] = buf[i];
 	}
 	
 	pos = pos + length;
@@ -55,11 +38,7 @@ void emit_embedded(struct Emitter *emitter, char *one_embedded) {
 	int remain = length % 4;
 	embedded_remain = remain;
 	for(i = 0; i< 4-remain;i++) {
-		emitter->buf[pos+i+bit_shift] = 0x0;
-		bit_shift = bit_shift - 2;
-		if(bit_shift < -3) {
-			bit_shift = 3;
-		}
+		emitter->buf[pos+i] = 0x0;
 	}
 	emitter->pos = pos + 1;
 }
@@ -335,11 +314,11 @@ int asm_ldrb(char *str, struct Emitter *emitter) {
 }
 
 void debug_emitter_dump() {
-	int j = 1;
+	int j = 0;
 	for(int i = 0; i< emitter.pos; i = i+4) {
-		printf("%d %02x%02x%02x%02x\n",j,emitter.buf[i+3],emitter.buf[i+2],
+		printf("%x %02x%02x%02x%02x\n",j,emitter.buf[i+3],emitter.buf[i+2],
 			emitter.buf[i+1],emitter.buf[i]);
-		j++;
+		j+=4;
 	}
 }
 
@@ -354,7 +333,6 @@ static void test_assemble_mov() {
 	cl_file_set_fp(fp);
 	assemble("./output/test.bin");
 	fclose(fp);
-	
 	int expect[8] = {0x02, 0x10, 0xa0, 0xe3, 0x04, 0x20, 0xa0, 0xe3};
 	
 	for(int i=0; i<emitter.pos; i++) {
@@ -473,7 +451,6 @@ static void test_asm_b() {
 	int actual = asm_b(input, &emitter);
 	unresolved_list_get(&actual_list);
 	label = to_label_symbol("label", 5);
-	
 	assert_number(expect, actual);
 	assert_number(expect, actual_list.code);
 	assert_number(emitter.pos, actual_list.emitter_pos);
@@ -485,15 +462,13 @@ static void test_emit_embedded() {
 	emitter.pos = 0;
 	char *input = "st\n\\\"ring";
 	int expect_pos = 10;
-	int expect[10] ={0x5c, 0x0a, 0x74, 0x73, 0x6e, 0x69, 0x72, 0x22, 0x67, 0x0};
-	
+	int expect[10] ={0x73, 0x74, 0x0a, 0x5c, 0x22, 0x72, 0x69, 0x6e, 0x67,0x00};
+	debug_emitter_dump();
 	emit_embedded(&emitter, input);
 	assert_number(expect_pos, emitter.pos);
-	for(int i=0; i<8; i++) {
+	for(int i=0; i<10; i++) {
 		assert_number(expect[i],emitter.buf[i]);
 	}
-	assert_number(expect[8],emitter.buf[11]);
-	assert_number(expect[9],emitter.buf[10]);
 }
 
 static void test_two_emit_embedded() {
@@ -502,17 +477,15 @@ static void test_two_emit_embedded() {
 	char *input = "st\n\\\"ring";
 	char *input2 = "str";
 	int expect_pos = 14;
-	int expect[13] ={0x5c, 0x0a, 0x74, 0x73, 0x6e, 0x69, 0x72, 0x22, 0x74,0x73, 0x0,0x67, 0x72};
+	int expect[13] ={0x73, 0x74, 0x0a, 0x5c, 0x22, 0x72, 0x69, 0x6e, 0x67,0x00, 0x73,0x74, 0x72};
+	//int expect[13] ={0x5c, 0x0a, 0x74, 0x73, 0x6e, 0x69, 0x72, 0x22, 0x74,0x73, 0x0,0x67, 0x72};
 	
 	emit_embedded(&emitter, input);
 	emit_embedded(&emitter, input2);
-
 	assert_number(expect_pos, emitter.pos);
-	for(int i=0; i<12; i++) {
+	for(int i=0; i<13; i++) {
 		assert_number(expect[i],emitter.buf[i]);
 	}
-	assert_number(expect[12],emitter.buf[15]);
-
 }
 
 static void test_emit_embedded_word() {
@@ -521,16 +494,15 @@ static void test_emit_embedded_word() {
 	char *input = "st\n\\\"ring";
 	int  input2 = 0x101f1000;
 	int expect_pos = 16;
-	int expect[16] ={0x5c, 0x0a, 0x74, 0x73, 0x6e, 0x69, 0x72, 0x22, 0x0,0x0, 0x0,0x67, 0x0, 0x10, 0x1f, 0x10};
+	int expect[16] ={0x73, 0x74, 0x0a, 0x5c, 0x22, 0x72, 0x69, 0x6e, 0x67,0x0, 0x0, 0x0,0x00, 0x10, 0x1f, 0x10};
 	
 	emit_embedded(&emitter, input);
 	emit_word(&emitter, input2);
-	
+
 	assert_number(expect_pos, emitter.pos);
 	for(int i=0; i<16; i++) {
 		assert_number(expect[i],emitter.buf[i]);
 	}
-
 }
 
 static void test_asm_raw_string() {
@@ -546,18 +518,16 @@ static void test_asm_raw_string() {
 	cl_file_set_fp(fp);
 	
 	int expect_pos = 10;
-	int expect[10] ={0x5c, 0x0a, 0x74, 0x73, 0x6e, 0x69, 0x72, 0x22, 0x67, 0x0};
+	int expect[10] ={0x73, 0x74, 0x0a, 0x5c, 0x22, 0x72, 0x69, 0x6e, 0x67, 0x0};
 	
 	cl_getline(&input);
 	asm_raw(input, &emitter);
 	fclose(fp);
 
 	assert_number(expect_pos, emitter.pos);
-	for(int i=0; i<8; i++) {
+	for(int i=0; i<10; i++) {
 		assert_number(expect[i],emitter.buf[i]);
 	}
-	assert_number(expect[8],emitter.buf[11]);
-	assert_number(expect[9],emitter.buf[10]);
 	
 }
 
@@ -705,8 +675,8 @@ static void unit_tests() {
 	test_address_fix_ldr_string();
 	test_asm_ldrb();
 }
-//#if 0
+#if 0
 int main(){
 	unit_tests();
 }
-//#endif
+#endif
