@@ -58,7 +58,7 @@ int assemble(char *output_name) {
 	dict_init();
 	unresolved_list_init();
 	embedded_remain = -1;
-	
+	int d = 1;
 	while((str_len = cl_getline(&str)) != 0){
 		code = asm_one(str);
 		if(code != 0) {
@@ -88,7 +88,7 @@ int address_fix() {
 	//list : mnemonic   keyValue: label
 	while(unresolved_list_get(&list)) {
 		// case: b
-		if(0xea000000 == list.code) {
+		if(0xea000000 == list.code || 0x1a000000 == list.code) {
 			if(dict_get(list.label, &keyValue)) {
 				int pos = keyValue.value - list.emitter_pos;
 				pos = pos - 8;
@@ -99,13 +99,13 @@ int address_fix() {
 		// case: ldr
 		} else if(0xe59f0000 == (list.code & 0xffff0000)) {
 			if(dict_get(list.label, &keyValue)) {
-				int pos = emitter.pos - list.emitter_pos;
+				int pos = emitter.pos - 8 - list.emitter_pos;
 				if(embedded_remain == 0) {
 					pos += 4;
 				} else if(embedded_remain >= 1) {
-					pos += embedded_remain - 1;
+					pos +=  3 - embedded_remain;
 				}
-				
+				printf("emitter %x embed %d list %x\n",emitter.pos,embedded_remain, list.emitter_pos);
 				code = list.code + pos;
 				// last
 				int last_code = 0x00000000;
@@ -119,8 +119,8 @@ int address_fix() {
 		}
 		emitter.pos = list.emitter_pos;
 		emit_word(&emitter, code);
+		emitter.pos = tmp_pos;
 	}
-	emitter.pos = tmp_pos;
 }
 
 int asm_one(char *str) {
@@ -142,19 +142,30 @@ int asm_one(char *str) {
 		mnemonic = to_mnemonic_symbol(op.str, op.len);
 		if(g_mov == mnemonic || g_MOV == mnemonic) {
 			return asm_mov(&str[read_len]);
-			
+		//ldr	
 		} else if(g_ldr == mnemonic || g_LDR == mnemonic) {
 			return asm_ldr(&str[read_len], &emitter);
-			
+		// str
 		} else if(g_str == mnemonic || g_STR == mnemonic) {
 			return asm_str(&str[read_len]);
-			
+		// add
+		} else if(g_add == mnemonic || g_ADD == mnemonic) {
+			return asm_add(&str[read_len]);
+		// bne
+		} else if(g_bne == mnemonic || g_BNE == mnemonic) {
+			return asm_bne(&str[read_len], &emitter);
+		// cmp
+		} else if(g_cmp == mnemonic || g_CMP == mnemonic) {
+			return asm_cmp(&str[read_len]);
+		// .raw
 		} else if(g_raw == mnemonic) {
 			return asm_raw(&str[read_len], &emitter);
+		// b
 		} else if(g_b == mnemonic || g_B == mnemonic) {
 			return asm_b(&str[read_len], &emitter);
+		// ldrb
 		} else if(g_ldrb == mnemonic || g_LDRB == mnemonic) {
-			return asm_b(&str[read_len], &emitter);
+			return asm_ldrb(&str[read_len], &emitter);
 		}
 	}
 	return 0;	
@@ -195,6 +206,23 @@ int asm_b(char *str, struct Emitter *emitter) {
 	return b;
 }
 
+int asm_bne(char *str, struct Emitter *emitter) {
+	// Data processing bne
+	// offset  0x00ffffff
+	int read_len, label;
+	struct substring op;
+	int bne = 0x1a000000;
+	read_len = parse_one(str, &op);
+	label = to_label_symbol(op.str, op.len);
+	struct List *list;
+	list = malloc(sizeof(list));
+	list->emitter_pos = emitter->pos;
+	list->label = label;
+	list->code = bne;
+	unresolved_list_put(list);
+	return bne;
+}
+
 int asm_mov(char *str) {
 	// Data processing P29 MOV
 	// rd       0x0000f000
@@ -219,6 +247,63 @@ int asm_mov(char *str) {
 	mov += operand;
 	
 	return mov;
+}
+
+int asm_cmp(char *str) {
+	// Data processing P29 CMP
+	// rn       0x000f0000
+	// operand  0x00000fff
+	int rn,operand;
+	int len = 0, tmp;
+	
+	tmp = parse_register(&str[len], &rn);
+	if(0 >= tmp) return 0;
+	len += tmp;
+	tmp = skip_comma(&str[len]);
+	if(0 >= tmp) return 0;
+	len += tmp;
+	tmp = parse_immediate(&str[len], &operand);
+	int cmp = 0xe3500000;
+	rn = rn << 16;
+	cmp += rn;
+	cmp += operand;
+	
+	return cmp;
+}
+
+int asm_add(char *str) {
+	// Data processing P29 ADD
+	// rn       0x000f0000
+	// rd       0x0000f000
+	// operand  0x00000fff
+	int rd,rn,operand;
+	int len = 0, tmp;
+	// rd
+	tmp = parse_register(&str[len], &rd);
+	if(0 >= tmp) return 0;
+	len += tmp;
+	// ,
+	tmp = skip_comma(&str[len]);
+	if(0 >= tmp) return 0;
+	len += tmp;
+	// rn
+	tmp = parse_register(&str[len], &rn);
+	if(0 >= tmp) return 0;
+	len += tmp;
+	// ,
+	tmp = skip_comma(&str[len]);
+	if(0 >= tmp) return 0;
+	len += tmp;
+	// operand
+	tmp = parse_immediate(&str[len], &operand);
+	int add = 0xe2800000;
+	rn = rn << 16;
+	rd = rd << 12;
+	add += rd;
+	add += rn;
+	add += operand;
+	
+	return add;
 }
 
 int asm_common_str_ldr(char *str, int *out_rn, int *out_rd, 
@@ -582,7 +667,7 @@ static void test_address_fix_ldr() {
 	char *input  = "ldr r1, =label";
 	char *input2 = "label:";
 	char *input3 = ".raw 0x101f1000";
-	int expect[4] = {0x08, 0x10, 0x9f, 0xe5};
+	int expect[4] = {0x00, 0x10, 0x9f, 0xe5};
 	int expect2[4] = {0x04, 0x00, 0x01, 0x00};
 	
 	int code;
@@ -620,7 +705,7 @@ static void test_address_fix_ldr_string() {
 	}
 	cl_file_set_fp(fp);
 	
-	int expect[4] = {0x0c, 0x10, 0x9f, 0xe5};
+	int expect[4] = {0x04, 0x10, 0x9f, 0xe5};
 	int expect2[4] = {0x04, 0x00, 0x01, 0x00};
 	
 	cl_getline(&input);
@@ -651,6 +736,43 @@ static void test_asm_ldrb() {
 	assert_number(expect, actual);
 }
 
+static void test_asm_add() {
+	char *input = "    r1, r2, #0x3";
+	int expect = 0xe2821003;
+	int actual;
+	
+	actual = asm_add(input);
+	assert_number(expect, actual);
+}
+
+static void test_asm_cmp() {
+	char *input = "    r3, #0x0";
+	int expect = 0xe3530000;
+	int actual;
+	
+	actual = asm_cmp(input);
+	assert_number(expect, actual);
+}
+
+static void test_asm_bne() {
+	unresolved_list_init();
+	emitter.pos = 8;
+	char *input = "    label";
+	
+	int label;
+	int expect = 0x1a000000;
+
+	struct List actual_list;
+	
+	int actual = asm_bne(input, &emitter);
+	unresolved_list_get(&actual_list);
+	label = to_label_symbol("label", 5);
+	assert_number(expect, actual);
+	assert_number(expect, actual_list.code);
+	assert_number(emitter.pos, actual_list.emitter_pos);
+	assert_number(label, actual_list.label);
+}
+
 static void unit_tests() {
 	setup_mnemonic();
 	test_asm_mov();
@@ -674,7 +796,11 @@ static void unit_tests() {
 	test_address_fix_ldr();
 	test_address_fix_ldr_string();
 	test_asm_ldrb();
+	test_asm_add();
+	test_asm_cmp();
+	test_asm_bne();
 }
+
 #if 0
 int main(){
 	unit_tests();

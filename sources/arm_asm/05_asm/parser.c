@@ -119,7 +119,7 @@ int parse_one(char *str, struct substring *out_sub) {
 		out_sub->len = length;
 		return i + length;
 	}
-	
+	printf("parse_one fail\n");
 	return PARSE_FAIL;
 }
 
@@ -150,6 +150,9 @@ int parse_string(char *str, char stopchar, char **out_str) {
 							state = final;
 							break;
 						} else if(single_ch == '\r') {
+							state = final;
+							break;
+						} else if(single_ch == '\n') {
 							state = final;
 							break;
 						} else {
