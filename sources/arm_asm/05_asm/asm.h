@@ -14,6 +14,8 @@ int g_STR;
 int g_raw;
 int g_b;
 int g_B;
+int g_ldrb;
+int g_LDRB;
 
 struct List {
 	struct List *next;

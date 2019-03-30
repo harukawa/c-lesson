@@ -148,7 +148,6 @@ int asm_one(char *str) {
 	struct substring op;
 	int read_len;
 	read_len = parse_one(str, &op);
-	
 	//case of label
 	if(':' == str[op.len-1]) {
 		int label;
@@ -166,7 +165,7 @@ int asm_one(char *str) {
 			return asm_mov(&str[read_len]);
 			
 		} else if(g_ldr == mnemonic || g_LDR == mnemonic) {
-			return asm_ldr(&str[read_len]);
+			return asm_ldr(&str[read_len], &emitter);
 			
 		} else if(g_str == mnemonic || g_STR == mnemonic) {
 			return asm_str(&str[read_len]);
@@ -174,6 +173,8 @@ int asm_one(char *str) {
 		} else if(g_raw == mnemonic) {
 			return asm_raw(&str[read_len], &emitter);
 		} else if(g_b == mnemonic || g_B == mnemonic) {
+			return asm_b(&str[read_len], &emitter);
+		} else if(g_ldrb == mnemonic || g_LDRB == mnemonic) {
 			return asm_b(&str[read_len], &emitter);
 		}
 	}
@@ -320,6 +321,17 @@ int asm_ldr(char *str, struct Emitter *emitter) {
 	ldr += rd;
 	ldr += offset;
 	return ldr;
+}
+
+int asm_ldrb(char *str, struct Emitter *emitter) {
+	int rn,rd, offset;
+	asm_common_str_ldr(str, &rn, &rd, &offset, emitter);
+	int ldrb = 0xe5d00000;
+	
+	ldrb += rn;
+	ldrb += rd;
+	ldrb += offset;
+	return ldrb;
 }
 
 void debug_emitter_dump() {
@@ -581,7 +593,6 @@ static void test_asm_ldr_label() {
 	int actual, label;
 	
 	struct List actual_list;
-	
 	actual = asm_ldr(input, &emitter);
 	unresolved_list_get(&actual_list);
 	label = to_label_symbol("label", 5);
@@ -611,7 +622,6 @@ static void test_address_fix_ldr() {
 	code = asm_one(input3);
 	emit_word(&emitter, code);
 	address_fix();
-
 	int i;
 	for(i=0; i<4; i++) {
 		assert_number(expect[i], emitter.buf[i]);
@@ -662,8 +672,16 @@ static void test_address_fix_ldr_string() {
 	}
 }
 
+static void test_asm_ldrb() {
+	char *input = "    r3, [r1]";
+	int expect = 0xe5d13000;
+	int actual;
+	
+	actual = asm_ldrb(input, &emitter);
+	assert_number(expect, actual);
+}
+
 static void unit_tests() {
-	printf("unit test start\n");
 	setup_mnemonic();
 	test_asm_mov();
 	test_asm_mov_immediate();
@@ -685,7 +703,7 @@ static void unit_tests() {
 	test_asm_ldr_label();
 	test_address_fix_ldr();
 	test_address_fix_ldr_string();
-	printf("unit test end\n");
+	test_asm_ldrb();
 }
 //#if 0
 int main(){

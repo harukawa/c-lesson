@@ -141,6 +141,8 @@ void setup_mnemonic() {
 	g_STR = to_mnemonic_symbol("STR", 3);
 	g_b = to_mnemonic_symbol("b", 1);
 	g_B = to_mnemonic_symbol("B", 1);
+	g_ldrb = to_mnemonic_symbol("ldrb", 4);
+	g_LDRB = to_mnemonic_symbol("LDRB", 4);
 	
 }
 
