@@ -87,7 +87,7 @@ int address_fix() {
 	int tmp_pos = emitter.pos;
 	//list : mnemonic   keyValue: label
 	while(unresolved_list_get(&list)) {
-		// case: b
+		// case: b bne
 		if(0xea000000 == list.code || 0x1a000000 == list.code) {
 			if(dict_get(list.label, &keyValue)) {
 				int pos = keyValue.value - list.emitter_pos;
@@ -105,7 +105,6 @@ int address_fix() {
 				} else if(embedded_remain >= 1) {
 					pos +=  3 - embedded_remain;
 				}
-				printf("emitter %x embed %d list %x\n",emitter.pos,embedded_remain, list.emitter_pos);
 				code = list.code + pos;
 				// last
 				int last_code = 0x00000000;
@@ -801,8 +800,8 @@ static void unit_tests() {
 	test_asm_bne();
 }
 
-#if 0
+//#if 0
 int main(){
 	unit_tests();
 }
-#endif
+//#endif
