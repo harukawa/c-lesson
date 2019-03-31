@@ -5,29 +5,23 @@
 struct Emitter emitter;
 static unsigned char g_byte_buf[100*1024];
 
-void ensure_four_byte_align(struct Emitter *emitter, int length) {
+void ensure_four_byte_align(struct Emitter *emitter) {
 	//　４バイト区切りになるように0x0を埋め込みます
 	// 文だけで４バイト区切りになっているときは0x0を4つ埋め込みます
-	// 文字列の余りの数はemitterに保存します
-	int remain = length % 4;
-	// 既に文を埋めていて、４バイトからずれている場合
-	if(emitter->byte_remain != -1) {
-		remain = remain + (emitter->byte_remain + 1);
-	}
-	emitter->byte_remain = remain;
-	for(int i = 0; i< 4-remain;i++) {
+	for(int i = 0; i< 4- emitter->byte_remain;i++) {
 		emitter->buf[emitter->pos+i] = 0x0;
 	}
+	emitter->pos = emitter->pos + (3 - emitter->byte_remain);
+	emitter->byte_remain = -1;
 }
 
 void emit_word(struct Emitter *emitter, int oneword) {
-	int pos = emitter->pos;
-	char *buf = &oneword;
 	// 文字の埋め込み後の場合、位置を４バイトに合わせる
 	if(emitter->byte_remain != -1) {
-		pos = pos + (3 - emitter->byte_remain);
-		emitter->byte_remain = -1;
+		ensure_four_byte_align(emitter);
 	}
+	char *buf = &oneword;
+	int pos = emitter->pos;
 	for(int i =0; i<4; i++) {
 		emitter->buf[pos+i] = buf[i];
 	}
@@ -42,12 +36,15 @@ void emit_embedded(struct Emitter *emitter, char *one_embedded, int length) {
 	for(i = 0; i< length; i++){;
 		emitter->buf[pos+i] = buf[i];
 	}
-
-	emitter->pos = pos + length;
-	//４バイト区切りになるよう0x0を残りに埋める
-	ensure_four_byte_align(emitter, length);
-	//0x0一つ分だけ先に進めます
-	emitter->pos++;
+	emitter->buf[pos+length] = 0x0;
+	//文と0x0一つ分だけ先に進めます
+	emitter->pos = pos + length + 1;
+	int remain = length % 4;
+	// 既に文を埋めていて、４バイトからずれている場合
+	if(emitter->byte_remain != -1) {
+		remain = remain + (emitter->byte_remain + 1);
+	}
+	emitter->byte_remain = remain;
 }
 
 int assemble(char *output_name) {
@@ -853,8 +850,8 @@ static void unit_tests() {
 	test_asm_bl();
 }
 
-//#if 0
+#if 0
 int main(){
 	unit_tests();
 }
-//#endif
+#endif
