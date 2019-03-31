@@ -51,6 +51,7 @@ static void regression_test() {
 	setup_mnemonic();
 	two_file_regression("./test/test_expect/test.bin", "test");
 	two_file_regression("./test/test_expect/test_hello.bin", "test_hello");
+	two_file_regression("./test/test_expect/test_print_loop.bin", "test_print_loop");
 }
 
 #if 0
