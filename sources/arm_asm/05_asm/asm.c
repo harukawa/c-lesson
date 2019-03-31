@@ -10,6 +10,10 @@ void ensure_four_byte_align(struct Emitter *emitter, int length) {
 	// 文だけで４バイト区切りになっているときは0x0を4つ埋め込みます
 	// 文字列の余りの数はemitterに保存します
 	int remain = length % 4;
+	// 既に文を埋めていて、４バイトからずれている場合
+	if(emitter->byte_remain != -1) {
+		remain = remain + (emitter->byte_remain + 1);
+	}
 	emitter->byte_remain = remain;
 	for(int i = 0; i< 4-remain;i++) {
 		emitter->buf[emitter->pos+i] = 0x0;
@@ -30,16 +34,15 @@ void emit_word(struct Emitter *emitter, int oneword) {
 	emitter->pos = pos + 4;
 }
 
-void emit_embedded(struct Emitter *emitter, char *one_embedded) {
+void emit_embedded(struct Emitter *emitter, char *one_embedded, int length) {
 	int pos = emitter->pos;
 	int i;
 	char *buf = one_embedded;
-	int length = strlen(buf);
 	
 	for(i = 0; i< length; i++){;
 		emitter->buf[pos+i] = buf[i];
 	}
-	
+
 	emitter->pos = pos + length;
 	//４バイト区切りになるよう0x0を残りに埋める
 	ensure_four_byte_align(emitter, length);
@@ -62,14 +65,13 @@ int assemble(char *output_name) {
 	dict_init();
 	unresolved_list_init();
 	emitter.byte_remain = -1;
-	int d = 1;
 	while((str_len = cl_getline(&str)) != 0){
 		code = asm_one(str);
 		if(code != 0) {
 			emit_word(&emitter, code);
 		}
 	}
-	
+
 	address_fix();
 
 	if((fp = fopen(output_name, "wb")) == NULL) {
@@ -91,8 +93,9 @@ int address_fix() {
 	int tmp_pos = emitter.pos;
 	//list : mnemonic   keyValue: label
 	while(unresolved_list_get(&list)) {
-		// case: b bne
-		if(0xea000000 == list.code || 0x1a000000 == list.code) {
+		// case: b bne bl
+		if(0xea000000 == list.code || 0x1a000000 == list.code
+			|| 0xeb000000 == list.code) {
 			if(dict_get(list.label, &keyValue)) {
 				int pos = keyValue.value - list.emitter_pos;
 				pos = pos - 8;
@@ -114,9 +117,7 @@ int address_fix() {
 				code = list.code + pos;
 				// last
 				// 文のアドレスを入れます
-				int last_code = 0x00000000;
-				int rn = (list.code >> 12) & 0xf;
-				last_code += rn << 16;
+				int last_code = 0x00010000;
 				last_code += keyValue.value;
 				emitter.pos = tmp_pos;
 				emit_word(&emitter, last_code);
@@ -169,6 +170,9 @@ int asm_one(char *str) {
 		// b
 		} else if(g_b == mnemonic || g_B == mnemonic) {
 			return asm_b(&str[read_len], &emitter);
+		// bl
+		} else if(g_bl == mnemonic || g_BL == mnemonic) {
+			return asm_bl(&str[read_len], &emitter);
 		// ldrb
 		} else if(g_ldrb == mnemonic || g_LDRB == mnemonic) {
 			return asm_ldrb(&str[read_len], &emitter);
@@ -183,7 +187,7 @@ int asm_raw(char *str, struct Emitter *emitter) {
 		char *embedded_str = "";
 		int len;
 		len = parse_string(str, '"', &embedded_str);
-		emit_embedded(emitter, embedded_str);
+		emit_embedded(emitter, embedded_str, len);
 		return 0;
 	//　数字の場合
 	} else {
@@ -212,6 +216,25 @@ int asm_b(char *str, struct Emitter *emitter) {
 	return b;
 }
 
+int asm_bl(char *str, struct Emitter *emitter) {
+	// Data processing P27 bl
+	// offset  0x00ffffff
+	int read_len, label;
+	struct substring op;
+	int bl = 0xeb000000;
+	
+	read_len = parse_one(str, &op);
+	label = to_label_symbol(op.str, op.len);
+
+	struct List *list;
+	list = malloc(sizeof(list));
+	list->emitter_pos = emitter->pos;
+	list->label = label;
+	list->code = bl;
+	unresolved_list_put(list);
+	return bl;
+}
+
 int asm_bne(char *str, struct Emitter *emitter) {
 	// Data processing bne
 	// offset  0x00ffffff
@@ -235,6 +258,7 @@ int asm_mov(char *str) {
 	// operand  0x00000fff
 	int rd,operand;
 	int len = 0, tmp;
+	int mov;
 	
 	tmp = parse_register(&str[len], &rd);
 	if(0 >= tmp) return 0;
@@ -244,10 +268,12 @@ int asm_mov(char *str) {
 	len += tmp;
 	if(is_register(&str[len])) {
 		tmp = parse_register(&str[len], &operand);
+		mov = 0xe1a00000;
 	} else {
 		tmp = parse_immediate(&str[len], &operand);
+		mov = 0xe3a00000;
 	}
-	int mov = 0xe3a00000;
+
 	rd = rd << 12;
 	mov += rd;
 	mov += operand;
@@ -407,7 +433,7 @@ int asm_ldrb(char *str, struct Emitter *emitter) {
 void debug_emitter_dump() {
 	int j = 0;
 	for(int i = 0; i< emitter.pos; i = i+4) {
-		printf("%x %02x%02x%02x%02x\n",j,emitter.buf[i+3],emitter.buf[i+2],
+		printf("%02x %02x%02x%02x%02x\n",j,emitter.buf[i+3],emitter.buf[i+2],
 			emitter.buf[i+1],emitter.buf[i]);
 		j+=4;
 	}
@@ -416,7 +442,7 @@ void debug_emitter_dump() {
 
 static void test_assemble_mov() {
 	FILE *fp = NULL;
-	char *file_name = "./test/test_cl_utils.s";
+	char *file_name = "./test/unit_test/test_cl_utils.ks";
 	if((fp=fopen(file_name, "r"))==NULL){
 		fprintf(stderr, "エラー: ファイルがオープンできません: %s\n", file_name);
 		exit(EXIT_FAILURE);
@@ -424,7 +450,7 @@ static void test_assemble_mov() {
 	cl_file_set_fp(fp);
 	assemble("./output/test.bin");
 	fclose(fp);
-	int expect[8] = {0x02, 0x10, 0xa0, 0xe3, 0x04, 0x20, 0xa0, 0xe3};
+	int expect[8] = {0x02, 0x10, 0xa0, 0xe1, 0x04, 0x20, 0xa0, 0xe1};
 	
 	for(int i=0; i<emitter.pos; i++) {
 		assert_number(expect[i], emitter.buf[i]);
@@ -434,7 +460,7 @@ static void test_assemble_mov() {
 static void test_asm_one() {
 	emitter.pos = 0;
 	char *input = "mov r1, r2";
-	int expect = 0xe3a01002;
+	int expect = 0xe1a01002;
 	
 	int actual = asm_one(input);
 	
@@ -457,7 +483,7 @@ static void test_asm_one_label() {
 
 static void test_asm_one_space() {
 	char *input = "    mov r1, r2";
-	int expect = 0xe3a01002;
+	int expect = 0xe1a01002;
 	
 	int actual = asm_one(input);
 	
@@ -466,7 +492,7 @@ static void test_asm_one_space() {
 
 static void test_asm_mov() {
 	char *input = "    r1, r2";
-	int expect = 0xe3a01002;
+	int expect = 0xe1a01002;
 	int actual;
 	
 	actual = asm_mov(input);
@@ -555,7 +581,7 @@ static void test_emit_embedded() {
 	int expect_pos = 10;
 	int expect[10] ={0x73, 0x74, 0x0a, 0x5c, 0x22, 0x72, 0x69, 0x6e, 0x67,0x00};
 	debug_emitter_dump();
-	emit_embedded(&emitter, input);
+	emit_embedded(&emitter, input, 9);
 	assert_number(expect_pos, emitter.pos);
 	for(int i=0; i<10; i++) {
 		assert_number(expect[i],emitter.buf[i]);
@@ -571,8 +597,8 @@ static void test_two_emit_embedded() {
 	int expect[13] ={0x73, 0x74, 0x0a, 0x5c, 0x22, 0x72, 0x69, 0x6e, 0x67,0x00, 0x73,0x74, 0x72};
 	//int expect[13] ={0x5c, 0x0a, 0x74, 0x73, 0x6e, 0x69, 0x72, 0x22, 0x74,0x73, 0x0,0x67, 0x72};
 	
-	emit_embedded(&emitter, input);
-	emit_embedded(&emitter, input2);
+	emit_embedded(&emitter, input, 9);
+	emit_embedded(&emitter, input2, 3);
 	assert_number(expect_pos, emitter.pos);
 	for(int i=0; i<13; i++) {
 		assert_number(expect[i],emitter.buf[i]);
@@ -587,7 +613,7 @@ static void test_emit_embedded_word() {
 	int expect_pos = 16;
 	int expect[16] ={0x73, 0x74, 0x0a, 0x5c, 0x22, 0x72, 0x69, 0x6e, 0x67,0x0, 0x0, 0x0,0x00, 0x10, 0x1f, 0x10};
 	
-	emit_embedded(&emitter, input);
+	emit_embedded(&emitter, input, 9);
 	emit_word(&emitter, input2);
 
 	assert_number(expect_pos, emitter.pos);
@@ -779,6 +805,25 @@ static void test_asm_bne() {
 	assert_number(label, actual_list.label);
 }
 
+static void test_asm_bl() {
+	unresolved_list_init();
+	emitter.pos = 8;
+	char *input = "    label";
+	
+	int label;
+	int expect = 0xeb000000;
+
+	struct List actual_list;
+	
+	int actual = asm_bl(input, &emitter);
+	unresolved_list_get(&actual_list);
+	label = to_label_symbol("label", 5);
+	assert_number(expect, actual);
+	assert_number(expect, actual_list.code);
+	assert_number(emitter.pos, actual_list.emitter_pos);
+	assert_number(label, actual_list.label);
+}
+
 static void unit_tests() {
 	setup_mnemonic();
 	test_asm_mov();
@@ -805,6 +850,7 @@ static void unit_tests() {
 	test_asm_add();
 	test_asm_cmp();
 	test_asm_bne();
+	test_asm_bl();
 }
 
 //#if 0
