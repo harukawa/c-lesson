@@ -53,8 +53,8 @@ static void regression_test() {
 	two_file_regression("./test/test_expect/test_hello.bin", "test_hello");
 }
 
-//#if 0
+#if 0
 int main(int argc, char *argv[]) {
 	regression_test();
 }
-//#endif
+#endif
