@@ -108,13 +108,13 @@ int parse_one(char *str, struct substring *out_sub) {
 		single_ch = str[i + length];
 	}
 	
-	if(single_ch == ' ' || single_ch == '\0') {
+	//　コンマが付いていた時
+	if(single_ch == ':') {
+		length++;
 		out_sub->str = &str[i];
 		out_sub->len = length;
 		return i + length;
-	//　コンマが付いていた時
-	} else if(single_ch == ':') {
-		length++;
+	} else {
 		out_sub->str = &str[i];
 		out_sub->len = length;
 		return i + length;
