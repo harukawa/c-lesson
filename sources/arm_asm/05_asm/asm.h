@@ -16,6 +16,16 @@ int g_b;
 int g_B;
 int g_ldrb;
 int g_LDRB;
+int g_add;
+int g_ADD;
+int g_cmp;
+int g_CMP;
+int g_bne;
+int g_BNE;
+int g_bl;
+int g_BL;
+int g_ldmia;
+int g_LDMIA;
 
 struct List {
 	struct List *next;
@@ -32,6 +42,7 @@ struct substring {
 struct Emitter {
 	unsigned char *buf;
 	int pos;
+	int byte_remain;
 };
 
 struct KeyValue {

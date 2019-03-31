@@ -4,19 +4,27 @@
 
 struct Emitter emitter;
 static unsigned char g_byte_buf[100*1024];
-int embedded_remain = -1;
+
+void ensure_four_byte_align(struct Emitter *emitter, int length) {
+	//　４バイト区切りになるように0x0を埋め込みます
+	// 文だけで４バイト区切りになっているときは0x0を4つ埋め込みます
+	// 文字列の余りの数はemitterに保存します
+	int remain = length % 4;
+	emitter->byte_remain = remain;
+	for(int i = 0; i< 4-remain;i++) {
+		emitter->buf[emitter->pos+i] = 0x0;
+	}
+}
 
 void emit_word(struct Emitter *emitter, int oneword) {
 	int pos = emitter->pos;
-	int i;
 	char *buf = &oneword;
-	// 文字の埋め込み後の場合
-	if(embedded_remain != -1) {
-		pos = pos + (3 - embedded_remain);
-		embedded_remain = -1;
+	// 文字の埋め込み後の場合、位置を４バイトに合わせる
+	if(emitter->byte_remain != -1) {
+		pos = pos + (3 - emitter->byte_remain);
+		emitter->byte_remain = -1;
 	}
-	
-	for(i =0; i<4; i++) {
+	for(int i =0; i<4; i++) {
 		emitter->buf[pos+i] = buf[i];
 	}
 	emitter->pos = pos + 4;
@@ -32,15 +40,11 @@ void emit_embedded(struct Emitter *emitter, char *one_embedded) {
 		emitter->buf[pos+i] = buf[i];
 	}
 	
-	pos = pos + length;
-	
-	//　0x0を埋め込む
-	int remain = length % 4;
-	embedded_remain = remain;
-	for(i = 0; i< 4-remain;i++) {
-		emitter->buf[pos+i] = 0x0;
-	}
-	emitter->pos = pos + 1;
+	emitter->pos = pos + length;
+	//４バイト区切りになるよう0x0を残りに埋める
+	ensure_four_byte_align(emitter, length);
+	//0x0一つ分だけ先に進めます
+	emitter->pos++;
 }
 
 int assemble(char *output_name) {
@@ -52,12 +56,12 @@ int assemble(char *output_name) {
 	
 	emitter.buf = g_byte_buf;
 	emitter.pos = 0;
-	embedded_remain = -1;
+	emitter.byte_remain = -1;
 	
 	setup_mnemonic();
 	dict_init();
 	unresolved_list_init();
-	embedded_remain = -1;
+	emitter.byte_remain = -1;
 	int d = 1;
 	while((str_len = cl_getline(&str)) != 0){
 		code = asm_one(str);
@@ -100,13 +104,16 @@ int address_fix() {
 		} else if(0xe59f0000 == (list.code & 0xffff0000)) {
 			if(dict_get(list.label, &keyValue)) {
 				int pos = emitter.pos - 8 - list.emitter_pos;
-				if(embedded_remain == 0) {
+				
+				//文字の埋め込みで４バイト区切りからずれている場合、位置を修正します
+				if(emitter.byte_remain == 0) {
 					pos += 4;
-				} else if(embedded_remain >= 1) {
-					pos +=  3 - embedded_remain;
+				} else if(emitter.byte_remain >= 1) {
+					pos +=  3 - emitter.byte_remain;
 				}
 				code = list.code + pos;
 				// last
+				// 文のアドレスを入れます
 				int last_code = 0x00000000;
 				int rn = (list.code >> 12) & 0xf;
 				last_code += rn << 16;
@@ -542,7 +549,7 @@ static void test_asm_b() {
 }
 
 static void test_emit_embedded() {
-	embedded_remain = -1;
+	emitter.byte_remain = -1;
 	emitter.pos = 0;
 	char *input = "st\n\\\"ring";
 	int expect_pos = 10;
@@ -556,7 +563,7 @@ static void test_emit_embedded() {
 }
 
 static void test_two_emit_embedded() {
-	embedded_remain = -1;
+	emitter.byte_remain = -1;
 	emitter.pos = 0;
 	char *input = "st\n\\\"ring";
 	char *input2 = "str";
@@ -573,7 +580,7 @@ static void test_two_emit_embedded() {
 }
 
 static void test_emit_embedded_word() {
-	embedded_remain = -1;
+	emitter.byte_remain = -1;
 	emitter.pos = 0;
 	char *input = "st\n\\\"ring";
 	int  input2 = 0x101f1000;
@@ -591,10 +598,10 @@ static void test_emit_embedded_word() {
 
 static void test_asm_raw_string() {
 	emitter.pos = 0;
-	embedded_remain = -1;
+	emitter.byte_remain = -1;
 	char *input;
 	FILE *fp = NULL;
-	char *file_name = "./test/test_parser_raw_string.s";
+	char *file_name = "./test/unit_test/test_parser_raw_string.ks";
 	if((fp=fopen(file_name, "r"))==NULL){
 		fprintf(stderr, "エラー: ファイルがオープンできません: %s\n", file_name);
 		exit(EXIT_FAILURE);
@@ -617,7 +624,7 @@ static void test_asm_raw_string() {
 
 
 static void test_address_fix() {
-	embedded_remain = -1;
+	emitter.byte_remain = -1;
 	emitter.pos = 0;
 	dict_init();
 	unresolved_list_init();
@@ -638,7 +645,7 @@ static void test_address_fix() {
 }
 
 static void test_asm_ldr_label() {
-	embedded_remain = -1;
+	emitter.byte_remain = -1;
 	unresolved_list_init();
 	dict_init();
 	emitter.pos = 0;
@@ -658,7 +665,7 @@ static void test_asm_ldr_label() {
 }
 
 static void test_address_fix_ldr() {
-	embedded_remain = -1;
+	emitter.byte_remain = -1;
 	emitter.pos = 0;
 	dict_init();
 	unresolved_list_init();
@@ -686,7 +693,7 @@ static void test_address_fix_ldr() {
 }
 
 static void test_address_fix_ldr_string() {
-	embedded_remain = -1;
+	emitter.byte_remain = -1;
 	emitter.pos = 0;
 	dict_init();
 	unresolved_list_init();
@@ -697,7 +704,7 @@ static void test_address_fix_ldr_string() {
 	
 	char *input;
 	FILE *fp = NULL;
-	char *file_name = "./test/test_ldr_label.s";
+	char *file_name = "./test/unit_test/test_ldr_label.ks";
 	if((fp=fopen(file_name, "r"))==NULL){
 		fprintf(stderr, "エラー: ファイルがオープンできません: %s\n", file_name);
 		exit(EXIT_FAILURE);

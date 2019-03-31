@@ -1,2 +1,0 @@
-"string"
-"st\n\\\"ring"
