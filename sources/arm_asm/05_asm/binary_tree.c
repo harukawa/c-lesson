@@ -143,7 +143,14 @@ void setup_mnemonic() {
 	g_B = to_mnemonic_symbol("B", 1);
 	g_ldrb = to_mnemonic_symbol("ldrb", 4);
 	g_LDRB = to_mnemonic_symbol("LDRB", 4);
-	
+	g_add = to_mnemonic_symbol("add", 3);
+	g_ADD = to_mnemonic_symbol("ADD", 3);
+	g_cmp = to_mnemonic_symbol("cmp", 3);
+	g_CMP = to_mnemonic_symbol("CMP", 3);
+	g_bne = to_mnemonic_symbol("bne", 3);
+	g_BNE = to_mnemonic_symbol("BNE", 3);
+	g_bl = to_mnemonic_symbol("bl", 2);
+	g_BL = to_mnemonic_symbol("BL", 2);
 }
 
 static void test_three_mnemonic_search() {
