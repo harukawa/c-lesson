@@ -151,6 +151,12 @@ void setup_mnemonic() {
 	g_BNE = to_mnemonic_symbol("BNE", 3);
 	g_bl = to_mnemonic_symbol("bl", 2);
 	g_BL = to_mnemonic_symbol("BL", 2);
+	g_blt = to_mnemonic_symbol("blt", 3);
+	g_BLT = to_mnemonic_symbol("BLT", 3);
+	g_ldmia = to_mnemonic_symbol("ldmia", 5);
+	g_ldmia = to_mnemonic_symbol("LDMIA", 5);
+	g_stmdb = to_mnemonic_symbol("stmdb", 5);
+	g_STMDB = to_mnemonic_symbol("STMDB", 5);
 }
 
 static void test_three_mnemonic_search() {

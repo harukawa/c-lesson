@@ -65,6 +65,22 @@ int is_equals_sign(char *str) {
 	}
 }
 
+int is_one_char(char *str, char target) {
+	int single_ch, length = 0;
+	single_ch = str[0];
+
+	while(' ' == single_ch) {
+		if(single_ch == '\0') return PARSE_FAIL;
+		length++;
+		single_ch = str[length];
+	}
+	if(target == single_ch) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
 int convert_character_to_digit(int c) {
 	if('a' <= c && c <= 'f') {
 		return c - 'a' + 10;
@@ -89,6 +105,21 @@ int is_sbracket(char *str) {
 	return 0;
 }
 
+int is_braces(char *str) {
+	int single_ch, length = 0;
+	single_ch = str[0];
+
+	while(single_ch == ' ') {
+		if('\0' == single_ch) return -1;
+		length++;
+		single_ch = str[length];
+	}
+	if('{' == single_ch || '}' == single_ch) {
+		return 1;
+	}
+	return 0;
+}
+
 int parse_one(char *str, struct substring *out_sub) {
 	
 	int single_ch, i = 0;
@@ -108,7 +139,7 @@ int parse_one(char *str, struct substring *out_sub) {
 		single_ch = str[i + length];
 	}
 	
-	//　コンマが付いていた時
+	//　コロンが付いていた時
 	if(single_ch == ':') {
 		length++;
 		out_sub->str = &str[i];
@@ -325,6 +356,35 @@ int skip_sbracket(char *str) {
 	return length;
 }
 
+int skip_braces(char *str) {
+	int length = 0;
+	int single_ch;
+	single_ch = str[0];
+
+	while(single_ch != '{'){
+		if(single_ch == '\0') return PARSE_FAIL;
+		length++;
+		single_ch = str[length];
+	}
+	length++;
+	return length;
+}
+
+int skip_one_char(char *str, char target) {
+	int length = 0;
+	int single_ch;
+	single_ch = str[0];
+
+	while(single_ch != target){
+		if(single_ch == '\0') return PARSE_FAIL;
+		length++;
+		single_ch = str[length];
+	}
+	length++;
+	return length;
+}
+
+
 int skip_comma(char *str) {
 	int length = 0;
 	int single_ch;
@@ -508,7 +568,7 @@ static void test_parse_raw_immediate_minus() {
 static void test_parse_string() {
 	char *input;
 	FILE *fp = NULL;
-	char *file_name = "./test/test_parser_string.s";
+	char *file_name = "./test/unit_test/test_parser_string.ks";
 	if((fp=fopen(file_name, "r"))==NULL){
 		fprintf(stderr, "エラー: ファイルがオープンできません: %s\n", file_name);
 		exit(EXIT_FAILURE);
@@ -534,6 +594,42 @@ static void test_parse_string() {
 	assert_substreq(expect2, actual2, expect_len2);
 }
 
+static void test_is_braces() {
+	char *input = "   {";
+	int expect = 1;
+
+	int actual = is_braces(input);
+	
+	assert_number(expect, actual);
+}
+
+static void test_skip_braces() {
+	char *input = "   {r1, r2}";
+	int expect = 4;
+
+	int actual = skip_braces(input);
+
+	assert_number(expect, actual);
+}
+
+static void test_is_one_char() {
+	char *input = "   =";
+	int expect = 1;
+
+	int actual = is_one_char(input, '=');
+	
+	assert_number(expect, actual);
+}
+
+static void test_skip_one_char() {
+	char *input = "   =";
+	int expect = 4;
+
+	int actual = skip_one_char(input, '=');
+
+	assert_number(expect, actual);
+}
+
 
 static void unit_tests() {
 	test_parse_one_upper();
@@ -556,6 +652,12 @@ static void unit_tests() {
 	test_parse_raw_immediate();
 	test_parse_raw_immediate_minus();
 	test_parse_string();
+	
+	test_is_braces();
+	test_skip_braces();
+	test_is_one_char();
+	test_skip_one_char();
+	
 }
 #if 0
 int main(){

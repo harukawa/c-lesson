@@ -24,8 +24,12 @@ int g_bne;
 int g_BNE;
 int g_bl;
 int g_BL;
+int g_blt;
+int g_BLT;
 int g_ldmia;
 int g_LDMIA;
+int g_stmdb;
+int g_STMDB;
 
 struct List {
 	struct List *next;
@@ -70,6 +74,10 @@ int parse_string(char *str, char stopchar, char **out_str);
 int is_raw_string(char *str);
 int parse_raw_number(char *str, int *out_embedded);
 int is_equals_sign(char *str);
+int is_one_char(char *str, char target);
+int is_braces(char *str);
+int skip_braces(char *str);
+int skip_one_char(char *str, char target);
 
 void setup_mnemonic();
 int to_mnemonic_symbol(char *str, int len);

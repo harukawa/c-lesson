@@ -8,24 +8,31 @@ static unsigned char g_byte_buf[100*1024];
 void ensure_four_byte_align(struct Emitter *emitter) {
 	//　４バイト区切りになるように0x0を埋め込みます
 	// 文だけで４バイト区切りになっているときは0x0を4つ埋め込みます
-	for(int i = 0; i< 4- emitter->byte_remain;i++) {
-		emitter->buf[emitter->pos+i] = 0x0;
+	if(emitter->byte_remain != -1) {
+		for(int i = 0; i< 4- emitter->byte_remain;i++) {
+			emitter->buf[emitter->pos+i] = 0x0;
+		}
+		emitter->pos = emitter->pos + (4 - emitter->byte_remain);
+		emitter->byte_remain = -1;
 	}
-	emitter->pos = emitter->pos + (3 - emitter->byte_remain);
-	emitter->byte_remain = -1;
 }
 
 void emit_word(struct Emitter *emitter, int oneword) {
 	// 文字の埋め込み後の場合、位置を４バイトに合わせる
-	if(emitter->byte_remain != -1) {
-		ensure_four_byte_align(emitter);
-	}
+	ensure_four_byte_align(emitter);
 	char *buf = &oneword;
 	int pos = emitter->pos;
 	for(int i =0; i<4; i++) {
 		emitter->buf[pos+i] = buf[i];
 	}
 	emitter->pos = pos + 4;
+}
+
+void update_word(struct Emitter *emitter,int pos,int  oneword) {
+	char *buf = &oneword;
+	for(int i =0; i<4; i++) {
+		emitter->buf[pos+i] = buf[i];
+	}
 }
 
 void emit_embedded(struct Emitter *emitter, char *one_embedded, int length) {
@@ -36,15 +43,23 @@ void emit_embedded(struct Emitter *emitter, char *one_embedded, int length) {
 	for(i = 0; i< length; i++){;
 		emitter->buf[pos+i] = buf[i];
 	}
+	pos = pos + length;
+	
 	emitter->buf[pos+length] = 0x0;
 	//文と0x0一つ分だけ先に進めます
-	emitter->pos = pos + length + 1;
-	int remain = length % 4;
-	// 既に文を埋めていて、４バイトからずれている場合
-	if(emitter->byte_remain != -1) {
-		remain = remain + (emitter->byte_remain + 1);
-	}
+	pos = pos + 1;
+	emitter->pos = pos;
+	int remain = pos % 4;
 	emitter->byte_remain = remain;
+}
+
+void common_unresolved_list_put(int emitter_pos, int label, int code) {
+	struct List *list;
+	list = malloc(sizeof(list));
+	list->emitter_pos = emitter_pos;
+	list->label = label;
+	list->code = code;
+	unresolved_list_put(list);
 }
 
 int assemble(char *output_name) {
@@ -87,12 +102,12 @@ int address_fix() {
 	struct List list;
 	struct KeyValue keyValue;
 	int code;
-	int tmp_pos = emitter.pos;
+
 	//list : mnemonic   keyValue: label
 	while(unresolved_list_get(&list)) {
-		// case: b bne bl
+		// case: b bne bl blt
 		if(0xea000000 == list.code || 0x1a000000 == list.code
-			|| 0xeb000000 == list.code) {
+			|| 0xeb000000 == list.code || 0xba000000 == list.code) {
 			if(dict_get(list.label, &keyValue)) {
 				int pos = keyValue.value - list.emitter_pos;
 				pos = pos - 8;
@@ -106,24 +121,18 @@ int address_fix() {
 				int pos = emitter.pos - 8 - list.emitter_pos;
 				
 				//文字の埋め込みで４バイト区切りからずれている場合、位置を修正します
-				if(emitter.byte_remain == 0) {
-					pos += 4;
-				} else if(emitter.byte_remain >= 1) {
-					pos +=  3 - emitter.byte_remain;
+				if(emitter.byte_remain != -1) {
+					pos +=  4 - emitter.byte_remain;
 				}
 				code = list.code + pos;
 				// last
 				// 文のアドレスを入れます
 				int last_code = 0x00010000;
 				last_code += keyValue.value;
-				emitter.pos = tmp_pos;
 				emit_word(&emitter, last_code);
-				tmp_pos += 4;
 			}
 		}
-		emitter.pos = list.emitter_pos;
-		emit_word(&emitter, code);
-		emitter.pos = tmp_pos;
+		update_word(&emitter, list.emitter_pos, code);
 	}
 }
 
@@ -170,9 +179,19 @@ int asm_one(char *str) {
 		// bl
 		} else if(g_bl == mnemonic || g_BL == mnemonic) {
 			return asm_bl(&str[read_len], &emitter);
+		// blt
+		} else if(g_blt == mnemonic || g_BLT == mnemonic) {
+			return asm_blt(&str[read_len], &emitter);
 		// ldrb
 		} else if(g_ldrb == mnemonic || g_LDRB == mnemonic) {
 			return asm_ldrb(&str[read_len], &emitter);
+			
+		// ldmia
+		} else if(g_ldmia == mnemonic || g_LDMIA == mnemonic) {
+			return asm_ldmia(&str[read_len], &emitter);
+		// stmdb
+		} else if(g_stmdb == mnemonic || g_STMDB == mnemonic) {
+			return asm_stmdb(&str[read_len], &emitter);
 		}
 	}
 	return 0;	
@@ -204,12 +223,7 @@ int asm_b(char *str, struct Emitter *emitter) {
 	read_len = parse_one(str, &op);
 	label = to_label_symbol(op.str, op.len);
 
-	struct List *list;
-	list = malloc(sizeof(list));
-	list->emitter_pos = emitter->pos;
-	list->label = label;
-	list->code = b;
-	unresolved_list_put(list);
+	common_unresolved_list_put(emitter->pos, label, b);
 	return b;
 }
 
@@ -223,12 +237,7 @@ int asm_bl(char *str, struct Emitter *emitter) {
 	read_len = parse_one(str, &op);
 	label = to_label_symbol(op.str, op.len);
 
-	struct List *list;
-	list = malloc(sizeof(list));
-	list->emitter_pos = emitter->pos;
-	list->label = label;
-	list->code = bl;
-	unresolved_list_put(list);
+	common_unresolved_list_put(emitter->pos, label, bl);
 	return bl;
 }
 
@@ -240,13 +249,111 @@ int asm_bne(char *str, struct Emitter *emitter) {
 	int bne = 0x1a000000;
 	read_len = parse_one(str, &op);
 	label = to_label_symbol(op.str, op.len);
-	struct List *list;
-	list = malloc(sizeof(list));
-	list->emitter_pos = emitter->pos;
-	list->label = label;
-	list->code = bne;
-	unresolved_list_put(list);
+
+	common_unresolved_list_put(emitter->pos, label, bne);
 	return bne;
+}
+
+int asm_blt(char *str, struct Emitter *emitter) {
+	// Data processing
+	// offset  0x00ffffff
+	int read_len, label;
+	struct substring op;
+	int blt = 0xba000000;
+	
+	read_len = parse_one(str, &op);
+	label = to_label_symbol(op.str, op.len);
+
+	common_unresolved_list_put(emitter->pos, label, blt);
+	return blt;
+}
+
+int get_register_list(char *str, int length) {
+	int register_list = 0x0;
+	int tmp, reg, tmp_reg,pre_reg,len;
+	int flag = 0;
+	len = length;
+	if(is_braces(&str[len])) {
+		tmp = skip_braces(&str[len]);
+		len += tmp;
+		while(is_braces(&str[len]) == 0) {
+			tmp_reg = 0x1;
+			tmp = parse_register(&str[len], &reg);
+			len += tmp;
+			if(flag== 1) {
+				for(int i=pre_reg+1;i<=reg; i++) {
+					tmp_reg = 0x1;
+					tmp_reg = tmp_reg << i;
+					register_list += tmp_reg;
+				}
+				flag = 0;
+			} else {
+				tmp_reg = tmp_reg << reg;
+				register_list += tmp_reg;
+			}
+			pre_reg = reg;
+			if(is_one_char(&str[len], '-')) {
+				tmp = skip_one_char(&str[len], '-');
+				len += tmp;
+				flag = 1;
+			} else if(is_braces(&str[len])) {
+				break;
+			} else {
+				tmp = skip_comma(&str[len]);
+				len += tmp;
+			}
+		}
+	}
+	return register_list;
+}
+
+int asm_ldmia(char *str) {
+	// Data processing P48 LDMIA
+	// rn             0x000f0000
+	// register list  0x0000ffff
+	int rn, register_list, tmp;
+	int len = 0;
+	tmp = parse_register(&str[len], &rn);
+	rn = rn << 16;
+	if(0 >= tmp) return 0;
+	len += tmp;
+	if(is_one_char(&str[len], '!')) {
+		tmp = skip_one_char(&str[len], '!');
+		len += tmp;
+		tmp = skip_comma(&str[len]);
+		if(0 >= tmp) return 0;
+		len += tmp;
+		register_list = get_register_list(str, len);
+	}
+	int ldmia = 0xe8b00000;
+	ldmia += rn;
+	ldmia += register_list;
+	return ldmia;
+}
+
+
+int asm_stmdb(char *str) {
+	// Data processing P48 STMDB
+	// rn             0x000f0000
+	// register list  0x0000ffff
+	int rn, register_list, tmp;
+	int len = 0;
+	tmp = parse_register(&str[len], &rn);
+	rn = rn << 16;
+	if(0 >= tmp) return 0;
+	len += tmp;
+	if(is_one_char(&str[len], '!')) {
+		tmp = skip_one_char(&str[len], '!');
+		len += tmp;
+		tmp = skip_comma(&str[len]);
+		if(0 >= tmp) return 0;
+		len += tmp;
+		register_list = get_register_list(str, len);
+	}
+	int stmdb = 0xe9200000;
+	stmdb += rn;
+	stmdb += register_list;
+	return stmdb;
 }
 
 int asm_mov(char *str) {
@@ -360,14 +467,9 @@ int asm_common_str_ldr(char *str, int *out_rn, int *out_rd,
 		label_len = parse_string(&str[len], '=', &label);
 		label_number = to_label_symbol(label, label_len);
 
-		struct List *list;
 		int code = 0xe59f0000;
 		code = code + rd;
-		list = malloc(sizeof(list));
-		list->emitter_pos = emitter->pos;
-		list->label = label_number;
-		list->code = code;
-		unresolved_list_put(list);
+		common_unresolved_list_put(emitter->pos, label_number, code);
 	
 	// レジスタと即値の場合
 	} else {
@@ -821,6 +923,43 @@ static void test_asm_bl() {
 	assert_number(label, actual_list.label);
 }
 
+static void test_asm_blt() {
+	unresolved_list_init();
+	emitter.pos = 8;
+	char *input = "    label";
+	
+	int label;
+	int expect = 0xba000000;
+
+	struct List actual_list;
+	
+	int actual = asm_blt(input, &emitter);
+	unresolved_list_get(&actual_list);
+	label = to_label_symbol("label", 5);
+	assert_number(expect, actual);
+	assert_number(expect, actual_list.code);
+	assert_number(emitter.pos, actual_list.emitter_pos);
+	assert_number(label, actual_list.label);
+}
+
+static void test_asm_ldmia() {
+	char *input = "    r13!, {r1-r3,r14}";
+	int expect = 0xe8bd400e;
+	int actual;
+	
+	actual = asm_ldmia(input);
+	assert_number(expect, actual);
+}
+
+static void test_asm_stmdb() {
+	char *input = "    r13!, {r1-r3,r14}";
+	int expect = 0xe92d400e;
+	int actual;
+	
+	actual = asm_stmdb(input);
+	assert_number(expect, actual);
+}
+
 static void unit_tests() {
 	setup_mnemonic();
 	test_asm_mov();
@@ -848,10 +987,13 @@ static void unit_tests() {
 	test_asm_cmp();
 	test_asm_bne();
 	test_asm_bl();
+	test_asm_blt();
+	test_asm_ldmia();
+	test_asm_stmdb();
 }
 
-#if 0
+//#if 0
 int main(){
 	unit_tests();
 }
-#endif
+//#endif
