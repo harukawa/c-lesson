@@ -108,9 +108,9 @@ int address_fix() {
 
 	//list : mnemonic   keyValue: label
 	while(unresolved_list_get(&list)) {
-		// case: b bne bl blt
-		if(0xea000000 == list.code || 0x1a000000 == list.code
-			|| 0xeb000000 == list.code || 0xba000000 == list.code) {
+		// case: b bne bl blt bge
+		if(0xea000000 == list.code || 0x1a000000 == list.code|| 0xeb000000 == list.code
+			|| 0xba000000 == list.code || 0xaa000000 == list.code) {
 			if(dict_get(list.label, &keyValue)) {
 				int pos = keyValue.value - list.emitter_pos;
 				pos = pos - 8;
@@ -188,6 +188,9 @@ int asm_one(char *str) {
 		// blt
 		} else if(g_blt == mnemonic || g_BLT == mnemonic) {
 			return asm_blt(&str[read_len], &emitter);
+		// bge
+		} else if(g_bge == mnemonic || g_BGE == mnemonic) {
+			return asm_bge(&str[read_len], &emitter);
 		// ldrb
 		} else if(g_ldrb == mnemonic || g_LDRB == mnemonic) {
 			return asm_ldrb(&str[read_len], &emitter);
@@ -198,6 +201,15 @@ int asm_one(char *str) {
 		// stmdb
 		} else if(g_stmdb == mnemonic || g_STMDB == mnemonic) {
 			return asm_stmdb(&str[read_len], &emitter);
+		// lsr
+		} else if(g_lsr == mnemonic || g_LSR == mnemonic) {
+			return asm_lsr(&str[read_len]);
+		// and
+		} else if(g_and == mnemonic || g_AND == mnemonic) {
+			return asm_and(&str[read_len]);
+		// sub
+		} else if(g_sub == mnemonic || g_SUB == mnemonic) {
+			return asm_sub(&str[read_len]);
 		}
 	}
 	return 0;	
@@ -258,6 +270,19 @@ int asm_bne(char *str, struct Emitter *emitter) {
 
 	common_unresolved_list_put(emitter->pos, label, bne, NULL);
 	return bne;
+}
+
+int asm_bge(char *str, struct Emitter *emitter) {
+	// Data processing bne
+	// offset  0x00ffffff
+	int read_len, label;
+	struct substring op;
+	int bge = 0xaa000000;
+	read_len = parse_one(str, &op);
+	label = to_label_symbol(op.str, op.len);
+
+	common_unresolved_list_put(emitter->pos, label, bge, NULL);
+	return bge;
 }
 
 int asm_blt(char *str, struct Emitter *emitter) {
@@ -413,11 +438,7 @@ int asm_cmp(char *str) {
 	return cmp;
 }
 
-int asm_add(char *str) {
-	// Data processing P29 ADD
-	// rn       0x000f0000
-	// rd       0x0000f000
-	// operand  0x00000fff
+void common_calculation_data_get(char *str,int *out_rn, int *out_rd, int *out_operand) {
 	int rd,rn,operand;
 	int len = 0, tmp;
 	// rd
@@ -438,14 +459,96 @@ int asm_add(char *str) {
 	len += tmp;
 	// operand
 	tmp = parse_immediate(&str[len], &operand, '#');
-	int add = 0xe2800000;
 	rn = rn << 16;
 	rd = rd << 12;
+	*out_rn = rn;
+	*out_rd = rd;
+	*out_operand = operand;
+}
+
+int asm_add(char *str) {
+	// Data processing P29 ADD
+	// rn       0x000f0000
+	// rd       0x0000f000
+	// operand  0x00000fff
+	int rd,rn,operand;
+	int len = 0, tmp;
+	common_calculation_data_get(str, &rn, &rd, &operand);
+	int add = 0xe2800000;
+
 	add += rd;
 	add += rn;
 	add += operand;
 	
 	return add;
+}
+
+int asm_sub(char *str) {
+	// Data processing P29 SUB
+	// rn       0x000f0000
+	// rd       0x0000f000
+	// operand  0x00000fff
+	int rd,rn,operand;
+	int len = 0, tmp;
+	common_calculation_data_get(str, &rn, &rd, &operand);
+	int sub = 0xe2400000;
+
+	sub += rd;
+	sub += rn;
+	sub += operand;
+	
+	return sub;
+}
+
+int asm_and(char *str) {
+	// Data processing P29 AND
+	// rn       0x000f0000
+	// rd       0x0000f000
+	// operand  0x00000fff
+	int rd,rn,operand;
+	common_calculation_data_get(str, &rn, &rd, &operand);
+	int and = 0xe2000000;
+
+	and += rd;
+	and += rn;
+	and += operand;
+	
+	return and;
+}
+
+int asm_lsr(char *str) {
+	// LSR
+	// register1       0x0000f000
+	// register2       0x00000f00
+	// operand         0x0000000f
+	int register1,register2,operand;
+	int len = 0, tmp;
+	// register1
+	tmp = parse_register(&str[len], &register1);
+	if(0 >= tmp) return 0;
+	len += tmp;
+	// ,
+	tmp = skip_comma(&str[len]);
+	if(0 >= tmp) return 0;
+	len += tmp;
+	// register2
+	tmp = parse_register(&str[len], &register2);
+	if(0 >= tmp) return 0;
+	len += tmp;
+	// ,
+	tmp = skip_comma(&str[len]);
+	if(0 >= tmp) return 0;
+	len += tmp;
+	// operand
+	tmp = parse_register(&str[len], &operand);
+	int lsr = 0xe1a00030;
+	register1 = register1 << 12;
+	operand = operand << 8;
+	lsr += register1;
+	lsr += register2;
+	lsr += operand;
+	
+	return lsr;
 }
 
 int asm_common_str_ldr(char *str, int *out_rn, int *out_rd, 
@@ -998,6 +1101,52 @@ static void test_ldr_immediate() {
 	}
 }
 
+static void test_asm_and() {
+	char *input = "    r2, r3, #0xf";
+	int expect = 0xe203200f;
+	int actual;
+	
+	actual = asm_and(input);
+	assert_number(expect, actual);
+}
+
+static void test_asm_lsr() {
+	char *input = "    r4, r5, r6";
+	int expect = 0xe1a04635;
+	int actual;
+	
+	actual = asm_lsr(input);
+	assert_number(expect, actual);
+}
+
+static void test_asm_sub() {
+	char *input = "    r3,r3,#0x4";
+	int expect = 0xe2433004;
+	int actual;
+	
+	actual = asm_sub(input);
+	assert_number(expect, actual);
+}
+
+static void test_asm_bge() {
+	unresolved_list_init();
+	emitter.pos = 8;
+	char *input = "    label";
+	
+	int label;
+	int expect = 0xaa000000;
+
+	struct List actual_list;
+	
+	int actual = asm_bge(input, &emitter);
+	unresolved_list_get(&actual_list);
+	label = to_label_symbol("label", 5);
+	assert_number(expect, actual);
+	assert_number(expect, actual_list.code);
+	assert_number(emitter.pos, actual_list.emitter_pos);
+	assert_number(label, actual_list.label);
+}
+
 static void unit_tests() {
 	setup_mnemonic();
 	test_asm_mov();
@@ -1029,6 +1178,10 @@ static void unit_tests() {
 	test_asm_ldmia();
 	test_asm_stmdb();
 	test_ldr_immediate();
+	test_asm_and();
+	test_asm_lsr();
+	test_asm_sub();
+	test_asm_bge();
 }
 
 #if 0

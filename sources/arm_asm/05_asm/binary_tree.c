@@ -154,9 +154,17 @@ void setup_mnemonic() {
 	g_blt = to_mnemonic_symbol("blt", 3);
 	g_BLT = to_mnemonic_symbol("BLT", 3);
 	g_ldmia = to_mnemonic_symbol("ldmia", 5);
-	g_ldmia = to_mnemonic_symbol("LDMIA", 5);
+	g_LDMIA = to_mnemonic_symbol("LDMIA", 5);
 	g_stmdb = to_mnemonic_symbol("stmdb", 5);
 	g_STMDB = to_mnemonic_symbol("STMDB", 5);
+	g_lsr = to_mnemonic_symbol("lsr", 3);
+	g_LSR = to_mnemonic_symbol("LSR", 3);
+	g_and = to_mnemonic_symbol("and", 3);
+	g_AND = to_mnemonic_symbol("AND", 3);
+	g_sub = to_mnemonic_symbol("sub", 3);
+	g_SUB = to_mnemonic_symbol("SUB", 3);
+	g_bge = to_mnemonic_symbol("bge", 3);
+	g_BGE = to_mnemonic_symbol("BGE", 3);
 }
 
 static void test_three_mnemonic_search() {

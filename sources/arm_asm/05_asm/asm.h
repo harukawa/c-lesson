@@ -30,6 +30,14 @@ int g_ldmia;
 int g_LDMIA;
 int g_stmdb;
 int g_STMDB;
+int g_lsr;
+int g_LSR;
+int g_and;
+int g_AND;
+int g_sub;
+int g_SUB;
+int g_bge;
+int g_BGE;
 
 struct List {
 	struct List *next;
@@ -63,6 +71,7 @@ int cl_getline(char **out_buf);
 void assert_substreq(char *expect,char *actual,int actual_len);
 void assert_streq(char *expect, char *actual);
 void assert_number(int expect, int actual);
+void assert_number_array(int *expect, int *actual,int length);
 
 int parse_one(char *str, struct substring *out_sub);
 int parse_register(char *str, int *out_register);
