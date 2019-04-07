@@ -55,6 +55,7 @@ static void regression_test() {
 	two_file_regression("./test/test_expect/test_print_nomem.bin", "test_print_nomem");
 	two_file_regression("./test/test_expect/test_ldr_immediate.bin", "test_ldr_immediate");
 	two_file_regression("./test/test_expect/test_putchar_mem.bin", "test_putchar_mem");
+	two_file_regression("./test/test_expect/test_print_hex_mem.bin", "test_print_hex_mem");
 }
 
 //#if 0
