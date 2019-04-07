@@ -120,6 +120,28 @@ int is_braces(char *str) {
 	return 0;
 }
 
+int is_equals_next_number(char *str) {
+	int single_ch, length = 0;
+	single_ch = str[0];
+	while(single_ch != '=') {
+		if('\0' == single_ch) return -1;
+		length++;
+		single_ch = str[length];
+	}
+	length++;
+	single_ch = str[length];
+	while(single_ch == ' ') {
+		if('\0' == single_ch) return -1;
+		length++;
+		single_ch = str[length];
+	}
+
+	if(single_ch == '0' & str[length+1] == 'x') {
+		return 1;
+	}
+	return 0;
+}
+
 int parse_one(char *str, struct substring *out_sub) {
 	
 	int single_ch, i = 0;
@@ -241,12 +263,12 @@ int parse_register(char *str, int *out_register) {
 	return length;
 }
 
-int parse_immediate(char *str, int *out_immediate) {
+int parse_immediate(char *str, int *out_immediate, char target) {
 	int single_ch, length = 0;
 	single_ch = str[0];
 	int minus = 0;
 
-	while('#' != single_ch) {
+	while(target != single_ch) {
 		if(single_ch == '\0') return PARSE_FAIL;
 		length++;
 		single_ch = str[length];
@@ -488,7 +510,7 @@ static void test_parse_immediate() {
 	int expect_len = 7;
 	int expect = 0x64;
 
-	int actual_len = parse_immediate(input, &actual);
+	int actual_len = parse_immediate(input, &actual, '#');
 
 	assert_number(expect_len, actual_len);
 	assert_number(expect, actual);
@@ -500,7 +522,7 @@ static void test_parse_immediate_minus() {
 	int expect_len = 8;
 	int expect = 0x9c;
 
-	int actual_len = parse_immediate(input, &actual);
+	int actual_len = parse_immediate(input, &actual, '#');
 
 	assert_number(expect_len, actual_len);
 	assert_number(expect, actual);
@@ -511,7 +533,7 @@ static void test_parse_immediate_fail() {
 	int actual;
 	int expect = -1;
 
-	int actual_len = parse_immediate(input, &actual);
+	int actual_len = parse_immediate(input, &actual , '#');
 
 	assert_number(expect, actual_len);
 }
@@ -631,6 +653,20 @@ static void test_skip_one_char() {
 }
 
 
+static void test_is_equals_next_number() {
+	char *input = "   = 0x23";
+	char *input2 = "  =label";
+	int expect = 1;
+	int expect2 = 0;
+
+	int actual = is_equals_next_number(input);
+	int actual2 = is_equals_next_number(input2);
+
+	assert_number(expect, actual);
+	assert_number(expect2, actual2);
+}
+
+
 static void unit_tests() {
 	test_parse_one_upper();
 	test_parse_one_lower();
@@ -657,6 +693,7 @@ static void unit_tests() {
 	test_skip_braces();
 	test_is_one_char();
 	test_skip_one_char();
+	test_is_equals_next_number();
 	
 }
 #if 0

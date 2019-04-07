@@ -45,7 +45,7 @@ void emit_embedded(struct Emitter *emitter, char *one_embedded, int length) {
 	}
 	pos = pos + length;
 	
-	emitter->buf[pos+length] = 0x0;
+	emitter->buf[pos] = 0x0;
 	//文と0x0一つ分だけ先に進めます
 	pos = pos + 1;
 	emitter->pos = pos;
@@ -53,12 +53,13 @@ void emit_embedded(struct Emitter *emitter, char *one_embedded, int length) {
 	emitter->byte_remain = remain;
 }
 
-void common_unresolved_list_put(int emitter_pos, int label, int code) {
+void common_unresolved_list_put(int emitter_pos, int label, int code, int immediate) {
 	struct List *list;
 	list = malloc(sizeof(list));
 	list->emitter_pos = emitter_pos;
 	list->label = label;
 	list->code = code;
+	list->immediate = immediate;
 	unresolved_list_put(list);
 }
 
@@ -72,7 +73,9 @@ int assemble(char *output_name) {
 	emitter.buf = g_byte_buf;
 	emitter.pos = 0;
 	emitter.byte_remain = -1;
-	
+	for(int i=0; i<100*1024; i++) {
+		emitter.buf[i] = 0x3;
+	}
 	setup_mnemonic();
 	dict_init();
 	unresolved_list_init();
@@ -117,19 +120,22 @@ int address_fix() {
 			}
 		// case: ldr
 		} else if(0xe59f0000 == (list.code & 0xffff0000)) {
-			if(dict_get(list.label, &keyValue)) {
-				int pos = emitter.pos - 8 - list.emitter_pos;
+			
+			int pos = emitter.pos - 8 - list.emitter_pos;
 				
-				//文字の埋め込みで４バイト区切りからずれている場合、位置を修正します
-				if(emitter.byte_remain != -1) {
-					pos +=  4 - emitter.byte_remain;
-				}
-				code = list.code + pos;
-				// last
-				// 文のアドレスを入れます
+			//文字の埋め込みで４バイト区切りからずれている場合、位置を修正します
+			if(emitter.byte_remain != -1) {
+				pos +=  4 - emitter.byte_remain;
+			}
+			code = list.code + pos;
+			if(dict_get(list.label, &keyValue)) {	
+				// labelの場合　文のアドレスを入れます
 				int last_code = 0x00010000;
 				last_code += keyValue.value;
 				emit_word(&emitter, last_code);
+			} else {
+				//即値の場合
+				emit_word(&emitter, list.immediate);
 			}
 		}
 		update_word(&emitter, list.emitter_pos, code);
@@ -223,7 +229,7 @@ int asm_b(char *str, struct Emitter *emitter) {
 	read_len = parse_one(str, &op);
 	label = to_label_symbol(op.str, op.len);
 
-	common_unresolved_list_put(emitter->pos, label, b);
+	common_unresolved_list_put(emitter->pos, label, b, NULL);
 	return b;
 }
 
@@ -237,7 +243,7 @@ int asm_bl(char *str, struct Emitter *emitter) {
 	read_len = parse_one(str, &op);
 	label = to_label_symbol(op.str, op.len);
 
-	common_unresolved_list_put(emitter->pos, label, bl);
+	common_unresolved_list_put(emitter->pos, label, bl, NULL);
 	return bl;
 }
 
@@ -250,7 +256,7 @@ int asm_bne(char *str, struct Emitter *emitter) {
 	read_len = parse_one(str, &op);
 	label = to_label_symbol(op.str, op.len);
 
-	common_unresolved_list_put(emitter->pos, label, bne);
+	common_unresolved_list_put(emitter->pos, label, bne, NULL);
 	return bne;
 }
 
@@ -264,7 +270,7 @@ int asm_blt(char *str, struct Emitter *emitter) {
 	read_len = parse_one(str, &op);
 	label = to_label_symbol(op.str, op.len);
 
-	common_unresolved_list_put(emitter->pos, label, blt);
+	common_unresolved_list_put(emitter->pos, label, blt, NULL);
 	return blt;
 }
 
@@ -374,7 +380,7 @@ int asm_mov(char *str) {
 		tmp = parse_register(&str[len], &operand);
 		mov = 0xe1a00000;
 	} else {
-		tmp = parse_immediate(&str[len], &operand);
+		tmp = parse_immediate(&str[len], &operand, '#');
 		mov = 0xe3a00000;
 	}
 
@@ -398,7 +404,7 @@ int asm_cmp(char *str) {
 	tmp = skip_comma(&str[len]);
 	if(0 >= tmp) return 0;
 	len += tmp;
-	tmp = parse_immediate(&str[len], &operand);
+	tmp = parse_immediate(&str[len], &operand, '#');
 	int cmp = 0xe3500000;
 	rn = rn << 16;
 	cmp += rn;
@@ -431,7 +437,7 @@ int asm_add(char *str) {
 	if(0 >= tmp) return 0;
 	len += tmp;
 	// operand
-	tmp = parse_immediate(&str[len], &operand);
+	tmp = parse_immediate(&str[len], &operand, '#');
 	int add = 0xe2800000;
 	rn = rn << 16;
 	rd = rd << 12;
@@ -461,15 +467,22 @@ int asm_common_str_ldr(char *str, int *out_rn, int *out_rd,
 	// ラベルの場合 ldr
 	if(is_equals_sign(&str[len])) {
 		char *label;
-		int label_len, label_number;
-		rn = 15;
-		rn = rn << 16;
-		label_len = parse_string(&str[len], '=', &label);
-		label_number = to_label_symbol(label, label_len);
-
 		int code = 0xe59f0000;
 		code = code + rd;
-		common_unresolved_list_put(emitter->pos, label_number, code);
+		rn = 15;
+		rn = rn << 16;
+		
+		if(is_equals_next_number(&str[len])) {
+			// 即値の場合
+			int number;
+			int length = parse_immediate(&str[len], &number, '=');
+			common_unresolved_list_put(emitter->pos, -1, code, number);
+		} else {
+			//　ラベルの場合
+			int label_len = parse_string(&str[len], '=', &label);
+			int label_number = to_label_symbol(label, label_len);
+			common_unresolved_list_put(emitter->pos, label_number, code, NULL);
+		}
 	
 	// レジスタと即値の場合
 	} else {
@@ -485,7 +498,7 @@ int asm_common_str_ldr(char *str, int *out_rn, int *out_rd,
 			tmp = skip_comma(&str[len]);
 			if(0 >= tmp) return 0;
 			len += tmp;
-			tmp = parse_immediate(&str[len], &offset);
+			tmp = parse_immediate(&str[len], &offset, '#');
 		}
 	}
 	
@@ -960,6 +973,31 @@ static void test_asm_stmdb() {
 	assert_number(expect, actual);
 }
 
+
+static void test_ldr_immediate() {
+	emitter.buf = g_byte_buf;
+	emitter.byte_remain = -1;
+	emitter.pos = 0;
+	dict_init();
+	unresolved_list_init();
+	
+	char *input = "    r1, =0x101f1000";
+	int expect[4]  = { 0xfc, 0x0f, 0x9f, 0xe5 };
+	int expect2[4] = { 0x00, 0x10, 0x1f, 0x10 };
+	
+	int code = asm_ldr(input, &emitter);
+	emit_word(&emitter, code);
+	address_fix();
+	
+	int i;
+	for(i=0; i<4; i++) {
+		assert_number(expect[i], emitter.buf[i]);
+	}
+	for(i=4; i<emitter.pos; i++) {
+		assert_number(expect2[i-4], emitter.buf[i]);
+	}
+}
+
 static void unit_tests() {
 	setup_mnemonic();
 	test_asm_mov();
@@ -990,10 +1028,11 @@ static void unit_tests() {
 	test_asm_blt();
 	test_asm_ldmia();
 	test_asm_stmdb();
+	test_ldr_immediate();
 }
 
-//#if 0
+#if 0
 int main(){
 	unit_tests();
 }
-//#endif
+#endif

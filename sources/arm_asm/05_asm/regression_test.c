@@ -52,10 +52,13 @@ static void regression_test() {
 	two_file_regression("./test/test_expect/test.bin", "test");
 	two_file_regression("./test/test_expect/test_hello.bin", "test_hello");
 	two_file_regression("./test/test_expect/test_print_loop.bin", "test_print_loop");
+	two_file_regression("./test/test_expect/test_print_nomem.bin", "test_print_nomem");
+	two_file_regression("./test/test_expect/test_ldr_immediate.bin", "test_ldr_immediate");
+	two_file_regression("./test/test_expect/test_putchar_mem.bin", "test_putchar_mem");
 }
 
-#if 0
+//#if 0
 int main(int argc, char *argv[]) {
 	regression_test();
 }
-#endif
+//#endif

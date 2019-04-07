@@ -10,6 +10,7 @@ void unresolved_list_init() {
 	unresolved_list->emitter_pos = 0;
 	unresolved_list->label = 0;
 	unresolved_list->code = 0;
+	unresolved_list->immediate = NULL;
 }
 
 void unresolved_list_put(struct List *add_list) {
@@ -22,6 +23,7 @@ void unresolved_list_put(struct List *add_list) {
 		list->emitter_pos = add_list->emitter_pos;
 		list->label = add_list->label;
 		list->code = add_list->code;
+		list->immediate = add_list->immediate;
 	} else {
 		//既に値が入っている場合
 		struct List *last_list;
@@ -55,8 +57,8 @@ static void assert_list(struct List *expect, struct List *actual) {
 
 static void test_two_put_add() {
 	unresolved_list_init();
-	struct List input = {NULL, 1, 2, 3};
-	struct List input2 = {NULL, 4, 5, 6};
+	struct List input = {NULL, 1, 2, 3, NULL};
+	struct List input2 = {NULL, 4, 5, 6, NULL};
 	struct List actual;
 	struct List actual2;
 	
@@ -71,9 +73,9 @@ static void test_two_put_add() {
 
 static void test_three_put_add() {
 	unresolved_list_init();
-	struct List input = {NULL, 1, 2, 3};
-	struct List input2 = {NULL, 4, 5, 6};
-	struct List input3 = {NULL, 7, 8, 9};
+	struct List input = {NULL, 1, 2, 3, 9};
+	struct List input2 = {NULL, 4, 5, 6, 0};
+	struct List input3 = {NULL, 7, 8, 9, 9};
 	struct List actual;
 	struct List actual2;
 	struct List actual3;

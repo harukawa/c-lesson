@@ -36,6 +36,7 @@ struct List {
 	int emitter_pos;
 	int label;
 	int code;
+	int immediate;
 };
 
 struct substring {
@@ -67,7 +68,7 @@ int parse_one(char *str, struct substring *out_sub);
 int parse_register(char *str, int *out_register);
 int skip_comma(char *str);
 int is_register(char *str);
-int parse_immediate(char *str, int *out_immediate);
+int parse_immediate(char *str, int *out_immediate, char target);
 int skip_sbracket(char *str);
 int is_sbracket(char *str);
 int parse_string(char *str, char stopchar, char **out_str);
@@ -78,6 +79,7 @@ int is_one_char(char *str, char target);
 int is_braces(char *str);
 int skip_braces(char *str);
 int skip_one_char(char *str, char target);
+int is_equals_next_number(char *str);
 
 void setup_mnemonic();
 int to_mnemonic_symbol(char *str, int len);
