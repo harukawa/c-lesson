@@ -87,7 +87,7 @@ int assemble(char *output_name) {
 		}
 	}
 
-	address_fix();
+	address_fix(&emitter);
 
 	if((fp = fopen(output_name, "wb")) == NULL) {
 		fprintf(stderr, "エラー: ファイルがオープンできません: %s\n", output_name);
@@ -101,7 +101,7 @@ int assemble(char *output_name) {
 	return 0;
 }
 
-int address_fix() {
+int address_fix(struct Emitter *emitter) {
 	struct List list;
 	struct KeyValue keyValue;
 	int code;
@@ -121,24 +121,24 @@ int address_fix() {
 		// case: ldr
 		} else if(0xe59f0000 == (list.code & 0xffff0000)) {
 			
-			int pos = emitter.pos - 8 - list.emitter_pos;
+			int pos = emitter->pos - 8 - list.emitter_pos;
 				
 			//文字の埋め込みで４バイト区切りからずれている場合、位置を修正します
-			if(emitter.byte_remain != -1) {
-				pos +=  4 - emitter.byte_remain;
+			if(emitter->byte_remain != -1) {
+				pos +=  4 - emitter->byte_remain;
 			}
 			code = list.code + pos;
 			if(dict_get(list.label, &keyValue)) {	
 				// labelの場合　文のアドレスを入れます
 				int last_code = 0x00010000;
 				last_code += keyValue.value;
-				emit_word(&emitter, last_code);
+				emit_word(emitter, last_code);
 			} else {
 				//即値の場合
-				emit_word(&emitter, list.immediate);
+				emit_word(emitter, list.immediate);
 			}
 		}
-		update_word(&emitter, list.emitter_pos, code);
+		update_word(emitter, list.emitter_pos, code);
 	}
 }
 
@@ -302,32 +302,28 @@ int asm_blt(char *str, struct Emitter *emitter) {
 int get_register_list(char *str, int length) {
 	int register_list = 0x0;
 	int tmp, reg, tmp_reg,pre_reg,len;
-	int flag = 0;
+	int is_region = 0;
 	len = length;
-	if(is_braces(&str[len])) {
+	if(is_open_brace(&str[len])) {
 		tmp = skip_braces(&str[len]);
 		len += tmp;
-		while(is_braces(&str[len]) == 0) {
-			tmp_reg = 0x1;
+		while(!is_close_brace(&str[len])) {
 			tmp = parse_register(&str[len], &reg);
 			len += tmp;
-			if(flag== 1) {
+			if(is_region== 1) {
 				for(int i=pre_reg+1;i<=reg; i++) {
-					tmp_reg = 0x1;
-					tmp_reg = tmp_reg << i;
-					register_list += tmp_reg;
+					register_list += 0x1 << i;
 				}
-				flag = 0;
+				is_region = 0;
 			} else {
-				tmp_reg = tmp_reg << reg;
-				register_list += tmp_reg;
+				register_list += 0x1 << reg;
 			}
 			pre_reg = reg;
 			if(is_one_char(&str[len], '-')) {
 				tmp = skip_one_char(&str[len], '-');
 				len += tmp;
-				flag = 1;
-			} else if(is_braces(&str[len])) {
+				is_region = 1;
+			} else if(is_close_brace(&str[len])) {
 				break;
 			} else {
 				tmp = skip_comma(&str[len]);
@@ -348,14 +344,16 @@ int asm_ldmia(char *str) {
 	rn = rn << 16;
 	if(0 >= tmp) return 0;
 	len += tmp;
-	if(is_one_char(&str[len], '!')) {
-		tmp = skip_one_char(&str[len], '!');
-		len += tmp;
-		tmp = skip_comma(&str[len]);
-		if(0 >= tmp) return 0;
-		len += tmp;
-		register_list = get_register_list(str, len);
+	if(!is_one_char(&str[len], '!')) {
+		return 0;
 	}
+	tmp = skip_one_char(&str[len], '!');
+	len += tmp;
+	tmp = skip_comma(&str[len]);
+	if(0 >= tmp) return 0;
+	len += tmp;
+	register_list = get_register_list(str, len);
+	
 	int ldmia = 0xe8b00000;
 	ldmia += rn;
 	ldmia += register_list;
@@ -373,14 +371,16 @@ int asm_stmdb(char *str) {
 	rn = rn << 16;
 	if(0 >= tmp) return 0;
 	len += tmp;
-	if(is_one_char(&str[len], '!')) {
-		tmp = skip_one_char(&str[len], '!');
-		len += tmp;
-		tmp = skip_comma(&str[len]);
-		if(0 >= tmp) return 0;
-		len += tmp;
-		register_list = get_register_list(str, len);
+	if(!is_one_char(&str[len], '!')) {
+		return 0;
 	}
+	tmp = skip_one_char(&str[len], '!');
+	len += tmp;
+	tmp = skip_comma(&str[len]);
+	if(0 >= tmp) return 0;
+	len += tmp;
+	register_list = get_register_list(str, len);
+	
 	int stmdb = 0xe9200000;
 	stmdb += rn;
 	stmdb += register_list;
@@ -877,7 +877,7 @@ static void test_address_fix() {
 	int code = asm_one(input);
 	code = asm_one(input2);
 	emit_word(&emitter, code);
-	address_fix();
+	address_fix(&emitter);
 	
 	
 	for(int i=0; i<emitter.pos; i++) {
@@ -923,7 +923,7 @@ static void test_address_fix_ldr() {
 	code = asm_one(input2);
 	code = asm_one(input3);
 	emit_word(&emitter, code);
-	address_fix();
+	address_fix(&emitter);
 	int i;
 	for(i=0; i<4; i++) {
 		assert_number(expect[i], emitter.buf[i]);
@@ -962,7 +962,7 @@ static void test_address_fix_ldr_string() {
 	code = asm_one(input);
 	cl_getline(&input);
 	code = asm_one(input);
-	address_fix();
+	address_fix(&emitter);
 	fclose(fp);
 
 	int i;
@@ -1090,7 +1090,7 @@ static void test_ldr_immediate() {
 	
 	int code = asm_ldr(input, &emitter);
 	emit_word(&emitter, code);
-	address_fix();
+	address_fix(&emitter);
 	
 	int i;
 	for(i=0; i<4; i++) {
@@ -1161,7 +1161,7 @@ static void unit_tests() {
 	test_asm_raw_number();
 	test_asm_one_label();
 	test_asm_b();
-	test_address_fix();
+	test_address_fix(&emitter);
 	test_emit_embedded();
 	test_two_emit_embedded();
 	test_emit_embedded_word();

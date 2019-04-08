@@ -11,7 +11,7 @@ int main(int argc, char *argv[]) {
 		}
 		cl_file_set_fp(fp);
 		setup_mnemonic();
-		assemble("./output/out.bin");
+		assemble("./output/output.bin");
 		debug_emitter_dump();
 		fclose(fp);
 	}

@@ -105,7 +105,7 @@ int is_sbracket(char *str) {
 	return 0;
 }
 
-int is_braces(char *str) {
+int is_open_brace(char *str) {
 	int single_ch, length = 0;
 	single_ch = str[0];
 
@@ -114,11 +114,27 @@ int is_braces(char *str) {
 		length++;
 		single_ch = str[length];
 	}
-	if('{' == single_ch || '}' == single_ch) {
+	if('{' == single_ch) {
 		return 1;
 	}
 	return 0;
 }
+
+int is_close_brace(char *str) {
+	int single_ch, length = 0;
+	single_ch = str[0];
+
+	while(single_ch == ' ') {
+		if('\0' == single_ch) return -1;
+		length++;
+		single_ch = str[length];
+	}
+	if('}' == single_ch) {
+		return 1;
+	}
+	return 0;
+}
+
 
 int is_equals_next_number(char *str) {
 	int single_ch, length = 0;
@@ -136,7 +152,7 @@ int is_equals_next_number(char *str) {
 		single_ch = str[length];
 	}
 
-	if(single_ch == '0' & str[length+1] == 'x') {
+	if(single_ch == '0' && str[length+1] == 'x') {
 		return 1;
 	}
 	return 0;
@@ -616,11 +632,20 @@ static void test_parse_string() {
 	assert_substreq(expect2, actual2, expect_len2);
 }
 
-static void test_is_braces() {
+static void test_is_open_brace() {
 	char *input = "   {";
 	int expect = 1;
 
-	int actual = is_braces(input);
+	int actual = is_open_brace(input);
+	
+	assert_number(expect, actual);
+}
+
+static void test_is_close_brace() {
+	char *input = "   }";
+	int expect = 1;
+
+	int actual = is_close_brace(input);
 	
 	assert_number(expect, actual);
 }
@@ -689,16 +714,17 @@ static void unit_tests() {
 	test_parse_raw_immediate_minus();
 	test_parse_string();
 	
-	test_is_braces();
+	test_is_open_brace();
+	test_is_close_brace();
 	test_skip_braces();
 	test_is_one_char();
 	test_skip_one_char();
 	test_is_equals_next_number();
 	
 }
-#if 0
+//#if 0
 int main(){
 	unit_tests();
 	return 0;
 }
-#endif
+//#endif
