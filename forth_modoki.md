@@ -1583,7 +1583,7 @@ C言語では配列の長さが実行時にしかわからなかったり、イ�
 struct ElementArray {
    int len;
    struct Element elements[0];
-];
+};
 ```
 
 この長さが0の配列宣言は特殊な意味があって、sizoeofの時にはこのElement型の配列の直前までのサイズとなります。(「確保の仕組み」の所の図参照）。
@@ -2014,11 +2014,11 @@ eval_exec_arrayさえ出来てしまえば、あとはプリミティブの所�
 
 なお実行可能配やC_FUNCTIONなどのような関数として使われるexecutable nameをPost Scriptではオペレータとも呼びます。
 
-なお、概念的にはevalがインタープリタ、eval_exec_arrayはVMになります。
+概念的にはevalがインタープリタ、eval_exec_arrayはVMになります。
 普通はトップレベルのところもexec arrayに変換してしまえばeval_exec_arrayに一本化出来るので、
 両方持っている必要は無いのですが、勉強も兼ねて両方残しておきましょう。
 
-なお、あとの都合の為、実行がネストしたケースのテストも書いておいてください。
+ここで、あとの都合の為、実行がネストしたケースのテストも書いておいてください。
 具体的には以下のコードです。
 
 ```
@@ -2218,7 +2218,22 @@ a b c d e 2 index
 a b c d e c
 ```
 
-となります。0番目から数えて、eが0番目、dが1番目、cが2番目です。
+となります。
+
+ここは良く間違える人がいるのでもう一つ例を足しておきます。
+以下のようにすると、
+
+```
+a b c d e 1 index
+```
+
+次のようになるのが正解です。
+
+```
+a b c d e d
+```
+
+0番目から数えて、eが0番目、dが1番目、cが2番目です。
 
 
 
@@ -2296,12 +2311,14 @@ PostScriptは、この言語でプログラムをする事自体がプログラ�
 2. sum_k.psでは数字を引数に1から指定された数までの和を求めるsum_kを実装して 10 sum_k を実行
 3. repeat.psでrepeatをwhileで実装する。カウンタはrepeat_contという変数に入れて実装。最後に 3 {1 2} repeat を実行（repeatのネストは動かなくていいです）
 4. k^2のシグマを求めるsum_k2を求めて検算出来そうなくらいの計算をさせる。
-5. フィボナッチ数列の第n項を求める。a_0 = a_1 = 0で、a_(n+2) = a_n + a_(n+1) だそうです。 10 fibo とかやると第10項の答えが出るようなfiboを実装。
-6. Fizz Buzz。modの実装が要るのでやらなくてもいいです。やる人はmodの仕様は勝手に調べて実装してください（なおめんどくさくてそう言ってるだけなので、このmdにPRくれたらマージします）。数字を順番にカウントしていくが、以下の場合だけ数字では無くて文字を出力。3と5で割れたら /FizzBuzz、それ以外で5で割れたら/Buzz、それ以外で3で割れたら/Fizz。今回は数字をスタックに積んでいって、FizzとかBuzzはリテラルネームをpushする事にしましょう。 15 FizzBuzz とやったら数字やリテラルネームを15までスタックに積んでいく事とします。15 FizzBuzzするとスタックの中は以下のようになるらしいです。
+5. フィボナッチ数列の第n項を求める。a_0 = 0、a_1 = 1で、a_(n+2) = a_n + a_(n+1) だそうです。 10 fibo とかやると第10項の答えが出るようなfiboを実装。
+6. Fizz Buzz。modの実装が要るのでやらなくてもいいです。やる人はmodをaddやdivなどと同様にC言語の%演算子を用いてプリミティブに追加すればいいでしょう。数字を順番にカウントしていくが、以下の場合だけ数字では無くて文字を出力。3と5で割れたら /FizzBuzz、それ以外で5で割れたら/Buzz、それ以外で3で割れたら/Fizz。今回は数字をスタックに積んでいって、FizzとかBuzzはリテラルネームをpushする事にしましょう。 15 FizzBuzz とやったら数字やリテラルネームを15までスタックに積んでいく事とします。15 FizzBuzzするとスタックの中は以下のようになるらしいです。
 
 ```
 1 2 /Fizz 4 /Buzz /Fizz 7 8 /Fizz /Buzz 11 /Fizz 13 14 /FizzBuzz
 ```
+
+7. 与えられた数までに含まれる素数を求める。100 primeseries とすることで2から100までに存在する素数を求めるようなprimeseriesを実装。まず、ある数が素数かどうかを判定するisprimeを実装し、primeseriesで与えられた数までループする中でisprimeを呼んで素数と判定されたものだけスタックに積んでいきましょう。ある数Nが素数かどうかを判定するにはNの平方根以下までの数で割り切れるかを調べるのがよく用いられる方法ですが、今回は小数を扱っていないのでN/2以下までの数で調べるというのでよいでしょう。
 
 あと、他人のコードも動かしてみましょう。
 自分のコードは自分の処理系の癖を知ってて無意識に手加減してしまう事があるので。
@@ -3379,13 +3396,6 @@ emitterが言語から触れて実行可能配列を組み立てるような関�
 Java VMのバイトコードはPostScriptを理解したあとだと結構簡単に読めるので、
 簡単にその話をしておきます。あくまで概要くらいですし、動作確認してないので動かなかったらごめんなさい。
 
-Javaバイトコードの簡単なリファレンスは以下が良さそう（英語ですが）
-
-[Java Virtual Machine
-Online Instruction Reference](https://cs.au.dk/~mis/dOvs/jvmspec/ref-Java.html)
-
-学生の頃この本の日本語訳を読みました（20年くらい前ですね）。あんま訳は良くなかったですが本は良かったです。
-
 まずJavaのバイトコードとPostScriptの違いは、オペレータに引数がある所です。
 オペレータと引数を合わせて一つのトークンのように読んでいくと良いと思います。
 
@@ -3462,3 +3472,13 @@ iload 1 // ローカル変数1の中身をスタックにpush
 真面目なVMを作るならJavaバイトコードのようにstoreでもインデックスを指定出来る方がいいでしょうね。
 
 Javaバイトコードはよく出来ているので本格的なVMを勉強したい時にはおすすめの題材です。
+
+以下参考文献など。
+
+- [JVM Spec, Chapter 3. Compiling for the Java Virtual Machine](https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-3.html) 仕様書の三章。具体例はこの辺が良く書けている。仕様書読める人は仕様書が一番。
+   - [JVM Spec, 6. Instruction Set](https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html) 具体的な命令については6章を読む。
+- [わらばんし仄聞記 Javaバイトコードの読み方](http://warabanshi.hatenablog.com/entry/2014/12/25/235644) Javaバイトコードの入門としては短くて分かりやすいと思います。
+- [Introduction to Java's bytecode reading](https://www.waitingforcode.com/java-bytecode/introduction-to-java-s-bytecode-reading/read) バイトコードを実際に読む時の入門。コメントの形で解説が書かれているのでぱっと見解説があまり無いように見えるが、良く読むと結構いろいろ書いてある
+   - [Reading Java methods in bytecode](https://www.waitingforcode.com/java-bytecode/reading-java-methods-in-bytecode/read) 同サイトのもうちょっと長い関数の解説。これも結構コメントで解説が書かれている。
+- [Amazon: JAVAバーチャルマシン (THE JAVA SERIES)](https://www.amazon.co.jp/dp/490090063X) 自分は昔この本読みました。今ならもっと良い本があると思いますが、この本は割とself containedで全部分かった、とは思えた気がする。
+
