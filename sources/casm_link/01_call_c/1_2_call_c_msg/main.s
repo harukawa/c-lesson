@@ -4,6 +4,7 @@ _start:
     // TODO: ここに何かを書いて、下のprint_msgで
     // Hello Worldと表示するようにしてください。
     // 
+	ldr r0, =msg
     bl print_msg
 loop:
     b loop
