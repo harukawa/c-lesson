@@ -19,22 +19,32 @@ void func3 () {
 	//func2 r11
 	print_address(*((int*)((((int)&target)+8) )));
 	
-	//func2 msg address
+	//func2 &msg 
 	print_address(*((int*)((((int)&target)+8) ))-8);
 	
-	//*msg
+	//func2 *(&msg) 
 	print_address(*(  (int*) (*((int*)(((int)&target)+ 8)) -8) ));
 	printf("func2 %s\n",(*(  (int*) (*((int*)(((int)&target)+ 8)) -8) )));
 	
 	//func1 r11
-	print_address(*((int*)((((int)&target)+8) )) );
-	//func1 msg address
+	print_address(*(  (int*) (*((int*)(((int)&target)+ 8)) ) ));
+	//func1 &msg
 	print_address(*(  (int*) (*((int*)(((int)&target)+ 8)) ) ) -8);
 	
-	//func1 *msg
+	//func1 *(&msg)
 	print_address (*((int*)(*(  (int*) (*((int*)(((int)&target)+ 8))  ) ) -8)));
 	
+	
 	printf("func1 %s\n",(*((int*)(*( (int*) (*((int*)(((int)&target)+ 8))   ) ) -8))));
+	
+	//main r11
+	print_address(* ((int*)  (*(  (int*) (*((int*)(((int)&target)+ 8)) ) ))  ));
+	//main &main_msg
+	print_address(*((int*)  (*(  (int*) (*((int*)(((int)&target)+ 8)) ) )) ) -8);
+	//main *(&main_msg)
+	print_address(* ((int*) (*((int*)  (*(  (int*) (*((int*)(((int)&target)+ 8)) ) )) ) -8)));
+	
+	printf("main %s\n",(* ((int*) (*((int*)  (*(  (int*) (*((int*)(((int)&target)+ 8)) ) )) ) -8))));
     printf("We are in func3\n");
 }
 
