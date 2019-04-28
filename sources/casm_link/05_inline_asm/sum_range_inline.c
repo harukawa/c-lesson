@@ -11,10 +11,20 @@ int sum_range(int beg, int end) {
 int sum_range_inline(int beg, int end) {
     int res;
     /*
-    TODO: Fix code below to pass test.
+    Use r0 as loop counter.
+    Use r2 to store temp result.
     */
+    asm("add r1, r1, #1"); // "<= end" == "< end+1"  
     asm("mov r2, #0");
+    asm("loop:");
+    asm("cmp r0, r1");
+    asm("beq end");
+    asm("add r2, r2, r0"); // sum+=i
+    asm("add r0, r0, #1"); // i++    
+    asm("b loop");
+    asm("end:");
     asm("mov %0, r2" :"=r"(res));
+    return res;
 
     return res;
 }
