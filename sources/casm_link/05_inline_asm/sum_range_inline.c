@@ -24,7 +24,6 @@ int sum_range_inline(int beg, int end) {
     asm("b loop");
     asm("end:");
     asm("mov %0, r2" :"=r"(res));
-    return res;
 
     return res;
 }
