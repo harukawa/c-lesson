@@ -47,7 +47,6 @@ void jit_sum_till() {
     Hint: put almost the same binary as sum_till_inline.
     Compile and use arm-linux-gnueabi-objdump -S ./a.out to check binary.
     */
-    // dummy implementation 
     binary_buf[0] = 0xe3a01000; // mov r1, #0
     binary_buf[1] = 0xe3a02000; // mov r2, #0
     // loop
