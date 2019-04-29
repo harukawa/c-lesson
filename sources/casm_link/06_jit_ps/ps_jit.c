@@ -5,6 +5,7 @@
 
 #include "parser.h"
 #include "test_util.h"
+#include "asm.h"
 
 extern int eval(int r0, int r1, char *str);
 
@@ -16,7 +17,7 @@ struct Emitter{
 struct Emitter emitter;
 static unsigned char g_byte_buf[1024];
 
-void emit_word(struct Emitter *emitter, int oneword) {
+static void emit_word(struct Emitter *emitter, int oneword) {
     char *buf = &oneword;
     int pos = emitter->pos;
     for(int i=0; i<4; i++) {
@@ -25,7 +26,7 @@ void emit_word(struct Emitter *emitter, int oneword) {
     emitter->pos = pos + 4;
 }
 
-void emit_output(struct Emitter *emitter, int pos, int *outword) {
+static void emit_output(struct Emitter *emitter, int pos, int *outword) {
     int oneword = 0x0;
     int number;
     for(int i=3; i >= 0; i--) {
@@ -36,6 +37,11 @@ void emit_output(struct Emitter *emitter, int pos, int *outword) {
         oneword += number;
     }
     *outword = oneword;
+}
+
+static void jit_asm_div() {
+
+
 }
 
 /*
@@ -61,7 +67,6 @@ void set_emitter_buf(struct Emitter *emitter) {
     for(int i=0; i<emitter->pos; i = i+4) {
         emit_output(emitter, i, &oneword);
         binary_buf[index_buf] = oneword;
-        printf("set %d %x \n",index_buf, oneword);
         index_buf++;
     }
 }
@@ -76,8 +81,8 @@ int* jit_script(char *input) {
     emitter.pos = 0;
 
     //eval
-    struct Substr remain={str, strlen(str)};
-    int oneword;
+    struct Substr remain={input, strlen(input)};
+    int oneword, val;
 
     while(!is_end(&remain)) {
         skip_space(&remain);
@@ -86,15 +91,17 @@ int* jit_script(char *input) {
             emit_word(&emitter, oneword);
             oneword = asm_stmdb_one(2); // stmdb r13!, {r2}
             emit_word(&emitter, oneword);
+            skip_token(&remain);
             continue;
 
         }else if(is_register(remain.ptr)) {
             if(remain.ptr[1] == '1') {
                 oneword = asm_stmdb_one(1); // stmdb r13!, {r1}
             } else {
-                oneword = asm_stmdb_one(2); // stmdb r13!, {r2}
+                oneword = asm_stmdb_one(0); // stmdb r13!, {r0}
             }
             emit_word(&emitter, oneword);
+            skip_token(&remain);
             continue;
         } else {
             // must be op.
@@ -104,6 +111,7 @@ int* jit_script(char *input) {
             skip_token(&remain);
 
             oneword = asm_ldmia_two(2,3); // ldmia r13!, {r2, r3}
+            emit_word(&emitter, oneword);
 
             switch(val) {
                 case OP_ADD:
@@ -116,30 +124,90 @@ int* jit_script(char *input) {
                     oneword = asm_mul(2,2,3); // mul r2, r2, r3              
                     break;
                 case OP_DIV:
-                    //oneword = asm_div(2,2,3); 
+                    jit_asm_div(); 
                     break;
             }
             emit_word(&emitter, oneword);
             oneword = asm_stmdb_one(2); //  stmdb r13!, {r2}
+            emit_word(&emitter, oneword);
             continue;
         }
-    }
-    
-    // setup binary
+    }    
+
+    oneword = asm_mov_register(0,2); // mov r0 r2
+    emit_word(&emitter, oneword);
     oneword = asm_mov_register(15,14); // mov r15 r14
     emit_word(&emitter, oneword);
-    //emit_word(&emitter, 0xe1a0f00e); // mov r15 r14
-    set_emitter_buf(&emitter);
 
+    // setup binary
+    set_emitter_buf(&emitter);
     return binary_buf;
 }
 
+static void test_add() {
+    int (*funcvar)(int, int);
+    char *input = "10 8 add";
+    int expect = 18;
+    int actual;
+
+    funcvar = (int(*)(int, int))jit_script(input);
+    actual = funcvar(1, 5);
+    assert_int_eq(expect, actual);
+}
+
+static void test_register() {
+    int (*funcvar)(int, int);
+    char *input = "r1 r0 add";
+    int expect = 12;
+    int actual;
+
+    funcvar = (int(*)(int, int))jit_script(input);
+    actual = funcvar(7, 5);
+    assert_int_eq(expect, actual);
+}
+
+static void test_sub() {
+    int (*funcvar)(int, int);
+    char *input = "10 8 sub";
+    int expect = 2;
+    int actual;
+
+    funcvar = (int(*)(int, int))jit_script(input);
+    actual = funcvar(1, 5);
+    assert_int_eq(expect, actual);
+}
+
+static void test_sub_multi() {
+    int (*funcvar)(int, int);
+    char *input = "20 8 sub 6 sub 3 sub";
+    int expect = 3;
+    int actual;
+
+    funcvar = (int(*)(int, int))jit_script(input);
+    actual = funcvar(1, 5);
+    assert_int_eq(expect, actual);
+}
+
+static void test_mul() {
+    int (*funcvar)(int, int);
+    char *input = "4 5 mul";
+    int expect = 20;
+    int actual;
+
+    funcvar = (int(*)(int, int))jit_script(input);
+    actual = funcvar(1, 5);
+    assert_int_eq(expect, actual);
+}
 
 static void run_unit_tests() {
+    test_register();
+    test_add();
+    test_sub();
+    test_sub_multi();
     printf("all test done\n");
 }
 
-
+//#if 0
 int main() {
     int res;
     int (*funcvar)(int, int);
@@ -152,8 +220,8 @@ int main() {
     /*
      TODO: Make below test pass.
     */
-    funcvar = (int(*)(int, int))jit_script("3 7 add r1 sub 4 mul");
-
+   funcvar = (int(*)(int, int))jit_script("3 7 add r1 sub 4 mul");
+    printf("funcvar\n");
     res = funcvar(1, 5);
     printf("res %d\n",res);
     assert_int_eq(20, res);
@@ -163,4 +231,5 @@ int main() {
 
     return 0;
 }
+//#endif
 
