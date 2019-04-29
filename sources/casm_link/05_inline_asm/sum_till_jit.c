@@ -48,7 +48,18 @@ void jit_sum_till() {
     Compile and use arm-linux-gnueabi-objdump -S ./a.out to check binary.
     */
     // dummy implementation 
-    binary_buf[0] = 0xe1a0f00e; // mov r15, r14
+    binary_buf[0] = 0xe3a01000; // mov r1, #0
+    binary_buf[1] = 0xe3a02000; // mov r2, #0
+    // loop
+    binary_buf[2] = 0xe1500001; // cmp r0, r1
+    binary_buf[3] = 0x0a000002; // beq end
+    binary_buf[4] = 0xe0822001; // add r2,r2,r1
+    binary_buf[5] = 0xe2811001; // add r1,r1,#1
+    binary_buf[6] = 0xeafffffa; // b loop
+    // end
+    binary_buf[7] = 0xe1a00002; // mov r0, r2
+    binary_buf[8] = 0xe1a0f00e; // mov r15, 14
+    
 }
 
 
