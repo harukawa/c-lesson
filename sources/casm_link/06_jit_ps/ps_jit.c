@@ -39,26 +39,22 @@ static void emit_output(struct Emitter *emitter, int pos, int *outword) {
     *outword = oneword;
 }
 
-static void jit_asm_div() {
+static void jit_asm_div(struct Emitter *emitter) {
     int oneword;
     oneword = asm_mov_immediate(4, 1); // mov r4, #1
-    emit_word(&emitter, oneword);
-    oneword = asm_mov_immediate(5, 0); // mov r5, #0
-    emit_word(&emitter, oneword);
-
-    oneword = asm_add(5,5,2); // add r5, r5, r2
-    emit_word(&emitter, oneword);
+    emit_word(emitter, oneword);
     // loop
-    emit_word(&emitter, 0xe1550003); // cmp r5, r3
-    emit_word(&emitter, 0x0a000002); // beq end
-    emit_word(&emitter, 0xe2844001); // add r4, r4, #1
-    oneword = asm_add(5,5,2); // add r5, r5, r2
-    emit_word(&emitter, oneword);
-    emit_word(&emitter, 0xeafffffa); // b loop
+    emit_word(emitter, 0xe1530002); // cmp r3, r2
+    emit_word(emitter, 0x0a000002); // beq end
+    oneword = asm_sub(3,3,2);        // sub r3, r3, r2
+    emit_word(emitter, oneword);
+    emit_word(emitter, 0xe2844001); // add r4, r4, #1
+    emit_word(emitter, 0xeafffffa); // b loop
+
     // end
     oneword = asm_mov_register(2, 4); // mov r2, r4
     
-    emit_word(&emitter, oneword);
+    emit_word(emitter, oneword);
 }
 
 /*
@@ -136,7 +132,7 @@ int* jit_script(char *input) {
                     emit_word(&emitter, oneword);
                     break;
                 case OP_SUB:
-                    oneword = asm_sub(2,2,3); // sub r2, r2, r3
+                    oneword = asm_sub(2,3,2); // sub r2, r3, r2
                     emit_word(&emitter, oneword); 
                     break;
                 case OP_MUL:
@@ -144,7 +140,7 @@ int* jit_script(char *input) {
                     emit_word(&emitter, oneword);              
                     break;
                 case OP_DIV:
-                    jit_asm_div(); 
+                    jit_asm_div(&emitter);  
                     break;
             }
             oneword = asm_stmdb_one(2); //  stmdb r13!, {r2}
@@ -226,7 +222,17 @@ static void test_div() {
 
     funcvar = (int(*)(int, int))jit_script(input);
     actual = funcvar(1, 5);
-    printf("actual %d\n",actual);
+    assert_int_eq(expect, actual);
+}
+
+static void test_multi() {
+    int (*funcvar)(int, int);
+    char *input = "8 4 div 5 mul 2 div 4 add 5 sub";
+    int expect = 4;
+    int actual;
+
+    funcvar = (int(*)(int, int))jit_script(input);
+    actual = funcvar(1, 5);
     assert_int_eq(expect, actual);
 }
 
@@ -236,6 +242,7 @@ static void run_unit_tests() {
     test_sub();
     test_sub_multi();
     test_div();
+    test_multi();
     printf("all test done\n");
 }
 
