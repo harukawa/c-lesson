@@ -19,6 +19,8 @@ enum OperationType {
 	BLT,
 	PUSH,
 	LDMIA,
+        STMDB,
+	MUL,
 	UNKNOWN
 };
 

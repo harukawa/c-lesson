@@ -61,6 +61,14 @@ int print_asm(int word) {
 		cl_printf("push {}\n");
 		return PUSH;
 	}
+        //MUL
+        if(0xe0000090 == (word & 0xeff000f0)) {
+                int rd   = cl_select_bit(word,0x000f0000,4);
+		int rs   = cl_select_bit(word,0x00000f00,2); 
+                int rm   = cl_select_bit(word,0x0000000f,0);
+		cl_printf("mul r%d, r%d, r%d\n",rd, rm, rs);
+		return MUL;
+        }
 	
 	// Block Data Transfer LDM P48
 	if(0xe8000000 == (word &0xee000000)) {
@@ -104,7 +112,10 @@ int print_asm(int word) {
 		if(0x0 == p && 0x9 == (USWL & 0x9)) {
 			cl_printf("ldmia r%d!, %s\n",rn,name);
 			return LDMIA;
-		}
+		} else {
+                        cl_printf("stmdb r%d!, %s\n",rn,name);
+			return STMDB;
+                }
 	// Single data transfer STR,LDR P42
 	} else if(0xe5000000 == (word &0xe5000000)) {
 		int rn   =   cl_select_bit(word,0x000f0000,4); //Base register
@@ -169,11 +180,23 @@ int print_asm(int word) {
 			return AND;
 		//SUB	OpCode = 0010
 		} else if(0x2 == opcode) {
-			cl_printf("sub r%d, r%d, #0x%x\n",rd, rn, operand2);
+			//即値
+			if(i == 0x2){
+				cl_printf("sub r%d, r%d, #0x%x\n",rd, rn, operand2);
+			//レジスタ
+			} else {
+				cl_printf("sub r%d, r%d, r%d\n",rd, rn, operand2);
+			}
 			return SUB;
 		//ADD	OpCode = 0100
 		} else if(0x4 == opcode) {
-			cl_printf("add r%d, r%d, #0x%x\n",rd, rn, operand2);
+                        //即値
+			if(i == 0x2){
+				cl_printf("add r%d, r%d, #0x%x\n",rd, rn, operand2);
+			//レジスタ
+			} else {
+				cl_printf("add r%d, r%d, r%d\n",rd, rn, operand2);
+			}
 			return ADD;
 		//MOV	OpCode = 1101
 		} else if(0xd == opcode) {
