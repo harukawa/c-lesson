@@ -41,8 +41,10 @@ static void emit_output(struct Emitter *emitter, int pos, int *outword) {
 
 static void jit_asm_div(struct Emitter *emitter) {
     int oneword;
+
     oneword = asm_mov_immediate(4, 1); // mov r4, #1
     emit_word(emitter, oneword);
+
     // loop
     emit_word(emitter, 0xe1530002); // cmp r3, r2
     emit_word(emitter, 0x0a000002); // beq end
@@ -53,7 +55,6 @@ static void jit_asm_div(struct Emitter *emitter) {
 
     // end
     oneword = asm_mov_register(2, 4); // mov r2, r4
-    
     emit_word(emitter, oneword);
 }
 
