@@ -3,23 +3,24 @@ arm-linux-gnueabi-gcc parser.c asm.c eval.c ps_jit.c && qemu-arm -L /usr/arm-lin
 
 arm-linux-gnueabi-gcc parser.c asm.c eval.c ps_jit.c cl_utils.c cl_assert.c disasm.c && qemu-arm -L /usr/arm-linux-gnueabi ./a.out
 
-main  0 e3a02003 mov r2, #0x0
-  4 e92d0004 e92d0004
-  8 e3a02007 mov r2, #0x0
- 12 e92d0004 e92d0004
+  0 e3a02003 mov r2, #0x3
+  4 e92d0004 stmdb r13!, {r2}
+  8 e3a02007 mov r2, #0x7
+ 12 e92d0004 stmdb r13!, {r2}
  16 e8bd000c ldmia r13!, {r2, r3}
- 20 e0822003 add r2, r2, #0x3
- 24 e92d0004 e92d0004
- 28 e92d0002 e92d0002
+ 20 e0822003 add r2, r2, r3
+ 24 e92d0004 stmdb r13!, {r2}
+ 28 e92d0002 stmdb r13!, {r1}
  32 e8bd000c ldmia r13!, {r2, r3}
- 36 e0432002 sub r2, r3, #0x2
- 40 e92d0004 e92d0004
- 44 e3a02004 mov r2, #0x0
- 48 e92d0004 e92d0004
+ 36 e0432002 sub r2, r3, r2
+ 40 e92d0004 stmdb r13!, {r2}
+ 44 e3a02004 mov r2, #0x4
+ 48 e92d0004 stmdb r13!, {r2}
  52 e8bd000c ldmia r13!, {r2, r3}
- 56 e0020392 and r0, r2, #0x392
- 60 e92d0004 e92d0004
+ 56 e0020392 mul r2, r2, r3
+ 60 e92d0004 stmdb r13!, {r2}
  64 e1a00002 mov r0, r2
  68 e1a0f00e mov r15, r14
+
 
 
