@@ -6,37 +6,33 @@
 #include "parser.h"
 #include "test_util.h"
 #include "asm.h"
+#include "arm_asm.h"
 
 extern int eval(int r0, int r1, char *str);
 
 struct Emitter{
-    unsigned char *buf;
+    int *buf;
     int pos;
 };
 
 struct Emitter emitter;
-static unsigned char g_byte_buf[1024];
 
 static void emit_word(struct Emitter *emitter, int oneword) {
-    char *buf = &oneword;
     int pos = emitter->pos;
-    for(int i=0; i<4; i++) {
-        emitter->buf[pos+i] = buf[i];
-    }
-    emitter->pos = pos + 4;
+    emitter->buf[pos] = oneword;
+    emitter->pos = pos + 1;
 }
 
-static void emit_output(struct Emitter *emitter, int pos, int *outword) {
-    int oneword = 0x0;
-    int number;
-    for(int i=3; i >= 0; i--) {
-        if(i != 3) {
-            oneword = oneword << 8;
-        }
-        number = emitter->buf[pos+i];
-        oneword += number;
+static void print_all_buffer(struct Emitter *emitter) {
+    int type, pos;
+    char *disasm;
+    
+    cl_clear_output();
+    for(int i=0; i < emitter->pos; i++) {
+        printf("%3d ",i*4);
+        type = print_asm(emitter->buf[i]);
     }
-    *outword = oneword;
+    
 }
 
 static void jit_asm_div(struct Emitter *emitter) {
@@ -75,23 +71,13 @@ void ensure_jit_buf() {
     }
 }
 
-void set_emitter_buf(struct Emitter *emitter) {
-    int oneword;
-    int index_buf = 0;
-    for(int i=0; i<emitter->pos; i = i+4) {
-        emit_output(emitter, i, &oneword);
-        binary_buf[index_buf] = oneword;
-        index_buf++;
-    }
-}
-
 int* jit_script(char *input) {
     ensure_jit_buf();
     /*
     TODO: emit binary here
     */
     // setup emitter
-    emitter.buf = g_byte_buf;
+    emitter.buf = binary_buf;
     emitter.pos = 0;
 
     //eval
@@ -155,10 +141,9 @@ int* jit_script(char *input) {
     oneword = asm_mov_register(15,14); // mov r15 r14
     emit_word(&emitter, oneword);
 
-    // setup binary
-    set_emitter_buf(&emitter);
     return binary_buf;
 }
+
 
 static void test_add() {
     int (*funcvar)(int, int);
@@ -253,7 +238,7 @@ int main() {
     int (*funcvar)(int, int);
 
     run_unit_tests();
-
+    print_all_buffer(&emitter);
     res = eval(1, 5, "3 7 add r1 sub 4 mul");
     printf("res=%d\n", res);
 
