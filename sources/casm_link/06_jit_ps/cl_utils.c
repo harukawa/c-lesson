@@ -64,9 +64,9 @@ int cl_rotate_bit(int shift, int word) {
 	int value = word;
 	shift = shift << 1;
 	int left_shift = 32 - shift;
-	value = value << left_shift;
 	
 	if(shift < 8 && shift != 0) {
+                value = value << left_shift;
 		int amari = word >> shift;
 		value = value + amari;
 	}
